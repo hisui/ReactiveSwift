@@ -26,8 +26,7 @@ public class Channel<A> {
     public func subscribe(f: Packet<A> -> ()) { abort() }
     
     public func close() {}
-    
-    public var isClosed: Bool { get { return true } }
+
 }
 
 /// An event.
@@ -58,6 +57,7 @@ public enum Packet<A> {
 public extension Stream {
 
     public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return Stream<B>(InnerBinding(self, f)) }
+    
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return Stream<B>(OuterBinding(self, f)) }
     
     public func flatMap<B>(f: A -> Stream<B>) -> Stream<B> { return self >>+ f }
@@ -212,8 +212,6 @@ public func >< <A>(a: Stream<A>, b: Stream<A>) -> Stream<A> {
     return Stream(Mix(a, b))
 }
 
-private enum State { case Open, Closing, Closed }
-
 // TODO It shall be separated into `Channel` and `Dispatcher` alone..
 /// An instance of this class emits events to `Channel` corresponding to itself.
 public class Dispatcher<A>: Channel<A> {
@@ -221,77 +219,86 @@ public class Dispatcher<A>: Channel<A> {
     public let callerContext: ExecutionContext
     public let calleeContext: ExecutionContext
 
-    private var handler: (Packet<A> -> ())?
-    private var closeHandler:  (( ) -> ())?
-    private var closeState = State.Open
-    
+    private var eventHandler: (Packet<A> -> ())? // accessed only from callerContext
+    private var closeHandler: (() -> ())?        // accessed only from calleeContext
+    private var calleeOpen = true
+    private var callerOpen = true
+
     public init(_ callerContext: ExecutionContext, _ calleeContext: ExecutionContext) {
         self.callerContext = callerContext
         self.calleeContext = calleeContext
     }
 
     public func flush(e: A) {
-        assert(!isClosed, "This channel was closed.")
+        assert(calleeOpen, "This channel was closed.")
         emitIfOpen(.Next(Box(e)))
         emitIfOpen(.Done())
     }
     
     // TODO emitAndWait: Cont<()>
     public func emit(e: Packet<A>) {
-        assert(!isClosed, "This channel was closed.")
+        assert(calleeOpen, "This channel was closed.")
         emitIfOpen(e)
     }
     
     public func emitIfOpen(e: Packet<A>) {
-        if !isClosed {
+        if calleeOpen {
             switch e {
             case .Next:
                 callerContext.schedule(calleeContext, 0) {
-                    if self.closeState != .Closed { self.handler!(e) }
+                    if (self.callerOpen) {
+                        self.eventHandler?(e)
+                    }
                 }
             default:
-                closeState = .Closing
+                calleeOpen = false
                 callerContext.schedule(calleeContext, 0) {
-                    if (self.closeState != .Closed) {
-                        self.closeState  = .Closed
-                        self.close_0(e)
+                    if (self.callerOpen) {
+                        self.eventHandler?(e)
+                        self.eventHandler = nil
                     }
+                    self.completeToClose()
                 }
             }
         }
     }
+    
+    public var isClosed: Bool { get { return !calleeOpen } }
 
     public func setCloseHandler(f: () -> ()) {
         assert(closeHandler == nil, "Dispatcher<>#setCloseHandler cannot be called twice.")
-        closeHandler = f
+        if (calleeOpen) {
+            closeHandler = f
+        }
     }
-    
+
     override public func subscribe(f: Packet<A> -> ()) {
-        assert(handler == nil, "Channel<>#subscribe has alreay been called.")
-        handler = f
+        assert(eventHandler == nil, "Channel<>#subscribe has alreay been called.")
+        if (callerOpen) {
+            eventHandler = f
+        }
     }
-    
-    // TODO thread safe
+
     override public func close() {
-        if (closeState != .Closed) {
-            closeState  = .Closed
-            callerContext.schedule(nil, 0) {
-                self.close_0(.Done())
+        if (callerOpen) {
+            callerOpen = false
+            calleeContext.schedule(callerContext, 0) {
+                if (self.calleeOpen) {
+                    self.calleeOpen = false
+                    self.completeToClose()
+                }
             }
+            eventHandler = nil
         }
     }
     
-    // TODO thread safe
-    override public var isClosed: Bool { get { return closeState != .Open } }
-
-    private func close_0(e: Packet<A>) {
-        handler?(e)
-        handler = nil
-        calleeContext.schedule(nil, 0) {
+    private func completeToClose() {
+        self.calleeContext.schedule(self.callerContext, 0) {
             self.closeHandler?()
             self.closeHandler = nil
         }
     }
+
 }
 
 class Source<A> {

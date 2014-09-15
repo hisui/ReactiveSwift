@@ -38,9 +38,6 @@ class SubjectTests: XCTestCase {
         while exec.consumeNext() {}
         
         XCTAssertEqual(0, subj.subscribers)
-        XCTAssertTrue(received1.value == nil)
-        XCTAssertTrue(received2.value == nil)
-
     }
     
 }

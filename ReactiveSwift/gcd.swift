@@ -51,9 +51,7 @@ public class GCDExecutionContext: ExecutionContext {
 
 public extension Stream {
     
-    public func open() -> Channel<A> {
-        return open(GCDExecutionContext())
-    }
+    public func open() -> Channel<A> { return open(GCDExecutionContext()) }
     
     public func isolated<B>(queue: dispatch_queue_t, f: Stream<A> -> Stream<B>) -> Stream<B> {
         return isolated([.Actor(GCDQueue(queue))], f: f)
