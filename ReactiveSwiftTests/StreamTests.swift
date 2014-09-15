@@ -5,7 +5,7 @@ import ReactiveSwift
 
 // helper extension for easy testing
 private extension Stream {
-    var array: Array<A> {
+    var array: [A] {
         get { return FakeExecutor.accumulateElementsWhile(self, { true }) }
     }
     
@@ -130,13 +130,14 @@ class StreamTests: XCTestCase {
     
     // TODO
     func testRace() {
-        let s: Stream<Either<String, Int>> =
+        
+        let given: Stream<Either<String, Int>> =
         Streams.race(
             Streams.pure("A"),
             Streams.pure( 1 ))
         
         for i in 1 ... 3 {
-            let a = s.array
+            let a = given.array
             XCTAssertEqual(2, a.count)
 
             switch (a[0], a[1]) {
@@ -151,6 +152,18 @@ class StreamTests: XCTestCase {
             default:
                 XCTFail("unreachable")
             }
+        }
+    }
+    
+    func testSeq() {
+        
+        let given: Stream<[String]> = Streams.seq([
+            Streams.pure("A"),
+            Streams.pure("B"),
+            Streams.pure("C")])
+        
+        for i in 1 ... 3 {
+            XCTAssertEqual([["A", "B", "C"]], given.array)
         }
     }
     

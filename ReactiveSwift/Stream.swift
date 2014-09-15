@@ -158,7 +158,7 @@ public class Streams {
     
     public class func fail<A>(error: NSError) -> Stream<A> { return source { $0.emit(.Fail(error)) } }
 
-    public class func list<A>(a: Array<A>) -> Stream<A> {
+    public class func list<A>(a: [A]) -> Stream<A> {
         return source { chan in
             var i = 0
             while i < a.count && !chan.isClosed {

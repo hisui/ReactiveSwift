@@ -28,7 +28,7 @@ public class ArrayDeque<A> {
         size = 0
     }
     
-    public func toArray() -> Array<A> {
+    public func toArray() -> [A] {
         var a = Array<A?>(count:size, repeatedValue:nil)
         drainTo(&a)
         return a.map { $0! }
@@ -77,7 +77,7 @@ public class ArrayDeque<A> {
         base = 0
     }
     
-    private func drainTo(inout o: Array<A?>) {
+    private func drainTo(inout o: [A?]) {
         var i = 0
         var j = base
         var n = size

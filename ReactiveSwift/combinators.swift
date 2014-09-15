@@ -127,15 +127,13 @@ public extension Streams {
     
     public class func flatten<A>(s: Stream<Stream<A>>) -> Stream<A> { return s >>+ { $0 } }
     
-    public class func mix<A>(a: Array<Stream<A>>) -> Stream<A>
-    {
-        return a.reduce(done(), combine: { $0 >< $1 })
+    public class func mix<A>(a: [Stream<A>]) -> Stream<A> { return a.reduce(done(), (><)) }
+    
+    public class func seq<A>(a: [Stream<A>]) -> Stream<[A]> {
+        return a.reduce(pure([])) { Streams.conj($0, $1).map { $0.0 + [$0.1] } }
     }
 
-    public class func concat<A>(a: Array<Stream<A>>) -> Stream<A> { return flatten(list(a)) }
-
-    // TODO
-    class func seq<A>(a: Array<Stream<A>>) -> Stream<Array<A>> { abort() }
+    public class func concat<A>(a: [Stream<A>]) -> Stream<A> { return flatten(list(a)) }
     
     public class func race<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<Either<A, B>>
     {
