@@ -7,7 +7,7 @@ public struct Stream<A> {
 
     private let o: Source<A>
     
-    private init(_ o: Source<A>) { self.o = o }
+    init(_ o: Source<A>) { self.o = o }
 
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 
@@ -294,7 +294,7 @@ public class Dispatcher<A>: Channel<A> {
     }
 }
 
-private class Source<A> {
+class Source<A> {
 
     func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
         let chan = Dispatcher<A>(callerContext, isolate(callerContext))
@@ -312,7 +312,7 @@ private class Source<A> {
     }
 }
 
-private class ClosureSource<A>: Source<A>  {
+private final class ClosureSource<A>: Source<A>  {
     
     private let property: [ExecutionProperty]
     private let runnable: Dispatcher<A> -> ()
@@ -329,7 +329,7 @@ private class ClosureSource<A>: Source<A>  {
     }
 }
 
-private class Mix<A>: Source<A> {
+private final class Mix<A>: Source<A> {
 
     private let a: Stream<A>
     private let b: Stream<A>
@@ -362,7 +362,7 @@ private class Mix<A>: Source<A> {
     }
 }
 
-private class OuterBinding<A, B>: Source<B> {
+private final class OuterBinding<A, B>: Source<B> {
 
     private let outer: Stream<A>
     private let block: () -> A -> Stream<B>
@@ -413,7 +413,7 @@ private class OuterBinding<A, B>: Source<B> {
 }
 
 // TODO Solve the memory leak issue
-private class InnerBinding<A, B>: Source<B> {
+private final class InnerBinding<A, B>: Source<B> {
     
     private let outer: Stream<A>
     private let block: () -> A -> Stream<B>

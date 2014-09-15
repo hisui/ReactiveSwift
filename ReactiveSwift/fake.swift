@@ -60,14 +60,16 @@ public class FakeExecutor {
 
     public func consumeNext() -> Bool { return tasks.shift()?() != nil }
     
-    public class func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> Array<A> {
-        let this = FakeExecutor()
-        var dest = Array<A>()
-        s.open(this.newContext())
-        .subscribe {
-            if let o = $0.value { dest.append(o) }
+    public func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
+        var a = Array<A>()
+        s.open(newContext()).subscribe {
+            if let o = $0.value { a.append(o) }
         }
-        while cond() && this.consumeNext() { /* no-op */ }
-        return dest
+        while cond() && consumeNext() { /* no-op */ }
+        return a
+    }
+    
+    public class func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
+        return FakeExecutor().accumulateElementsWhile(s, cond)
     }
 }

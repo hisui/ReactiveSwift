@@ -2,24 +2,24 @@
 
 import Foundation
 
-// TODO
 public class Subject<A> {
 
-    // TODO
-    private let writerContext: ExecutionContext
+    private let property: [ExecutionProperty]
     private var channels = Array<Dispatcher<A>> ()
     private var value: A
     
-    init(_ initialValue: A, _ context: ExecutionContext) {
+    public init(_ initialValue: A, _ property: [ExecutionProperty]=[]) {
         self.value = initialValue
-        self.writerContext = context
+        self.property = property
     }
-    
+
     public var currentValue: A {
         set(a) {
             value = a
             for chan in channels {
-                chan.emitIfOpen(.Next(Box(a)))
+                chan.calleeContext.schedule(nil, 0) {
+                    chan.emitIfOpen(.Next(Box(a)))
+                }
             }
         }
         get { return self.value }
@@ -27,13 +27,20 @@ public class Subject<A> {
 
     public func split() -> Stream<A> {
         // TODO notify packets are from "hot" channel
-        return Streams.source { chan in
+        return Streams.source(property) { chan in
             self.channels.append(chan)
             chan.setCloseHandler {
-                // remove chan from self.channels
+                for i in 0 ..< self.channels.count {
+                    if (self.channels[i] === chan) {
+                        self.channels.removeAtIndex(i)
+                        break
+                    }
+                }
             }
             chan.emit(.Next(Box(self.value)))
         }
     }
+    
+    public var subscribers: Int { get { return channels.count } }
 
 }

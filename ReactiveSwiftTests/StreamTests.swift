@@ -6,7 +6,7 @@ import ReactiveSwift
 // helper extension for easy testing
 private extension Stream {
     var array: [A] {
-        get { return FakeExecutor.accumulateElementsWhile(self, { true }) }
+        get { return FakeExecutor.accumulateElementsWhile(self) { true } }
     }
     
     func isolated<B>(name: String, f: Stream<A> -> Stream<B>) -> Stream<B> {
