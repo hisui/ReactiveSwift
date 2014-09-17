@@ -1,5 +1,7 @@
 // Copyright (c) 2014 segfault.jp. All rights reserved.
 
+import Foundation
+
 /// An abstract representation of an isolated process like the "actor".
 public class PID: Hashable {
     
