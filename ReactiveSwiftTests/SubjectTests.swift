@@ -26,7 +26,7 @@ class SubjectTests: XCTestCase {
         XCTAssertTrue(received1.value == nil)
         XCTAssertTrue(received2.value == nil)
         
-        while exec.consumeNext() {}
+        exec.consumeAll()
         
         XCTAssertTrue(received1.value == 2)
         XCTAssertTrue(received2.value == 2)
@@ -35,7 +35,7 @@ class SubjectTests: XCTestCase {
         chan2.close()
         XCTAssertEqual(2, subj.subscribers)
         
-        while exec.consumeNext() {}
+        exec.consumeAll()
         
         XCTAssertEqual(0, subj.subscribers)
     }

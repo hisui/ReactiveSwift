@@ -27,15 +27,19 @@ public class FakeExecutionContext: ExecutionContext {
     
     public var pid: String { get { return actor } }
 
-    // TODO introduce virtual (manipulatable) timeline mechanism
-    public var currentTime: NSDate { get { return NSDate() } }
+    public var currentTime: NSDate {
+        get {
+            return NSDate(timeIntervalSince1970: executor.currentTime)
+        }
+    }
     
     public func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ()) {
-        if (synch) {
+        if synch && delay == 0 {
             task()
-            return
         }
-        executor.tasks.push(task)
+        else {
+            executor.schedule(delay, task)
+        }
     }
 
     public func requires(property: [ExecutionProperty]) -> ExecutionContext {
@@ -52,24 +56,73 @@ public class FakeExecutionContext: ExecutionContext {
 
 public class FakeExecutor {
     
-    let tasks = ArrayDeque<() -> ()>()
+    private var currentTime: Double = 0
+    private var tasks: [Task] = []
     
     public init() {}
 
     public func newContext() -> ExecutionContext { return FakeExecutionContext(self, false, "main") }
+    
+    public func consumeAll() -> Bool {
+        return consumeUntil(currentTime)
+    }
 
-    public func consumeNext() -> Bool { return tasks.shift()?() != nil }
+    public func consumeUntil (time: Double, _ cond: () -> Bool = { true }) -> Bool {
+        assert(currentTime <= time)
+        var n = 0
+        while cond() {
+            var a = Array<Int>()
+            var t = Double.infinity
+            for var i = 0; i < tasks.count; ++i {
+                let e = tasks[i]
+                if (e.t <= min(time, t)) {
+                    if (e.t < t) {
+                        t = e.t
+                        a.removeAll(keepCapacity: true)
+                    }
+                    a.append(i)
+                }
+            }
+            if a.isEmpty {
+                break
+            }
+            currentTime = t
+            for i in a {
+                n++
+                tasks[i].f()
+            }
+            for i in reverse(a) { tasks.removeAtIndex(i) }
+        }
+        currentTime = time
+        return n > 0
+    }
     
     public func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
         var a = Array<A>()
         s.open(newContext()).subscribe {
             if let o = $0.value { a.append(o) }
         }
-        while cond() && consumeNext() { /* no-op */ }
+        consumeUntil(currentTime, cond)
         return a
     }
     
     public class func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
         return FakeExecutor().accumulateElementsWhile(s, cond)
+    }
+    
+    func schedule(delay: Double, _ f: () -> ()) {
+        tasks.append(Task(currentTime + delay, f))
+    }
+
+}
+
+private class Task {
+    
+    let t: Double
+    let f: () -> ()
+    
+    init(_ t: Double, _ f: () -> ()) {
+        self.t = t
+        self.f = f
     }
 }

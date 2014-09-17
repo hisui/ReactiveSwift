@@ -16,6 +16,11 @@ private extension Stream {
 
 class StreamTests: XCTestCase {
 
+    
+    func testSimple() {
+        XCTAssertEqual(["foo"], Streams.pure("foo").array)
+    }
+    
     func testCreateStreamFromCertainElements() {
         
         XCTAssertEqual(["foo"], Streams.pure("foo").array
@@ -26,6 +31,8 @@ class StreamTests: XCTestCase {
         
         XCTAssertEqual(Array<Int>(), Streams.done().array
             , "`Streams.done()` returns an empty stream.")
+        
+        XCTAssertEqual([1, 2, 3], Streams.range(1 ... 3).array)
     }
     
     func testCreateNeverEndingStream() {
@@ -35,7 +42,7 @@ class StreamTests: XCTestCase {
         ( Streams.none() as Stream<()> )
             .open(executor.newContext()).subscribe { _ in }
         
-        XCTAssertFalse(executor.consumeNext())
+        XCTAssertFalse(executor.consumeAll())
     }
     
     func testSubscribeCanBeInvokedMultipleTimes() {
@@ -46,9 +53,6 @@ class StreamTests: XCTestCase {
         XCTAssertEqual(a, s.array)
         XCTAssertEqual(a, s.array)
         XCTAssertEqual(a, s.array)
-    }
-    
-    func testMixTwoStreams() {
     }
     
     func testMap() {
@@ -67,7 +71,7 @@ class StreamTests: XCTestCase {
     
     func testFilter() {
         
-        let given = Streams.args(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        let given = Streams.range(0 ... 9)
         
         XCTAssertEqual([1, 3, 5, 7, 9], given.filter({ $0 % 2 == 1 }).array)
         XCTAssertEqual([0, 2, 4, 6, 8], given.filter({ $0 % 2 == 0 }).array)
@@ -76,13 +80,13 @@ class StreamTests: XCTestCase {
     func testTakeAndSkip() {
         
         XCTAssertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]
-            , Streams.args(1, 2, 3, 4, 5, 6, 7, 8, 9).skip(0).take(9).array)
+            , Streams.range(1 ... 9).skip(0).take(9).array)
         
         XCTAssertEqual([]
-            , Streams.args(1, 2, 3, 4, 5, 6, 7, 8, 9).take(0).skip(9).array)
+            , Streams.range(1 ... 9).take(0).skip(9).array)
         
         XCTAssertEqual([2, 3, 4, 5, 6, 7, 8]
-            , Streams.args(1, 2, 3, 4, 5, 6, 7, 8, 9).skip(1).take(7).array)
+            , Streams.range(1 ... 9).skip(1).take(7).array)
     }
     
     func testFlatten() {
@@ -105,17 +109,15 @@ class StreamTests: XCTestCase {
             Streams.pure("C") ]).array)
     }
 
-    func testConj() {
+    func testZip() {
         
         let a = Streams.args("A", "B", "C")
         let b = Streams.args(1, 2, 3)
 
-        let result = Streams.conj(a, b).array
+        let result = Streams.zip(a, b).array
         XCTAssertEqual(["A", "B", "C"], result.map { $0.0 })
         XCTAssertEqual([  1,   2,   3], result.map { $0.1 })
-        
-        // The swift compiler does'nt accept this code..
-        // XCTAssertEqual([("A", 1), ("B", 2), ("C", 3)], Streams.conj(a, b).array)
+
     }
     
     // TODO
@@ -126,36 +128,6 @@ class StreamTests: XCTestCase {
     
     func testDistinct() {
         XCTAssertEqual([1, 2, 3, 4, 5], Streams.distinct(Streams.args(1, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5)).array)
-    }
-    
-    // TODO
-    func testRace() {
-        
-        let given: Stream<Either<String, Int>> =
-        Streams.race(
-            Streams.pure("A"),
-            Streams.pure( 1 ))
-        
-        for i in 1 ... 3 {
-            let a = given.array
-            XCTAssertEqual(2, a.count)
-
-            if (a.count != 2) {
-                break
-            }
-            switch (a[0], a[1]) {
-            case (.Left(let l), .Right(let r)):
-                XCTAssertEqual(l.raw, "A")
-                XCTAssertEqual(r.raw,  1 )
-                
-            case (.Right(let r), .Left(let l)):
-                XCTAssertEqual(l.raw, "A")
-                XCTAssertEqual(r.raw,  1 )
-                
-            default:
-                XCTFail("unreachable")
-            }
-        }
     }
     
     func testSeq() {
@@ -178,7 +150,7 @@ class StreamTests: XCTestCase {
         var closed1 = 0
         var closed2 = 0
         
-        let given: Stream<Int> = (Streams.args(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        let given: Stream<Int> = (Streams.range(0 ... 9)
             .foreach { _ in passed1++; () }
             .onClose {      closed1++; () }
             .skip(2)
@@ -216,11 +188,130 @@ class StreamTests: XCTestCase {
         }
     }
     
-    func testRecover() {
+    func testFailsAndRecover() {
         
         let error = NSError()
         
         XCTAssertEqual([error], Streams.fail(error).recover { Streams.pure($0) }.array)
+    }
+    
+    // time-related
+    func testRepeatAndDelay() {
+        
+        var value: String? = nil
+        var count: Int     = 0
+        
+        let exec = FakeExecutor()
+        let chan = Streams.repeat("A", 2).open(exec.newContext())
+        chan.subscribe {
+            value = $0.value
+            count++
+        }
+        
+        exec.consumeUntil(0)
+        XCTAssertTrue(value == nil)
+        XCTAssertEqual(0, count)
+        
+        exec.consumeUntil(1)
+        XCTAssertTrue(value == nil)
+        XCTAssertEqual(0, count)
+        
+        exec.consumeUntil(3)
+        XCTAssertTrue(value == "A")
+        XCTAssertEqual(1, count)
+        
+        exec.consumeUntil(5)
+        XCTAssertTrue(value == "A")
+        XCTAssertEqual(2, count)
+
+    }
+    
+    // time-related
+    func testTimeout() {
+    }
+    
+    // time-related
+    func testThrottle() {
+        
+        var value: String? = nil
+        var count: Int     = 0
+        
+        let exec = FakeExecutor()
+        let chan = Streams.concat([
+            Streams.timeout(1, "A"), // 1 (<=)
+            Streams.timeout(3, "B"), // 4
+            Streams.timeout(1, "C"), // 5
+            Streams.timeout(1, "D"), // 6
+            Streams.timeout(3, "E"), // 9
+            Streams.timeout(3, "F"), // 12
+            ])
+            .throttle(2).open(exec.newContext())
+        
+        chan.subscribe {
+            value = $0.value
+            count++
+        }
+
+        exec.consumeUntil(2)
+        XCTAssertTrue(value == nil)
+        XCTAssertEqual(0, count)
+        
+        exec.consumeUntil(4)
+        XCTAssertEqual("A", value!)
+        XCTAssertEqual(1, count)
+        
+        exec.consumeUntil(7)
+        XCTAssertEqual("A", value!)
+        XCTAssertEqual(1, count)
+        
+        exec.consumeUntil(9)
+        XCTAssertEqual("D", value!)
+        XCTAssertEqual(2, count)
+        
+        exec.consumeUntil(13)
+        XCTAssertTrue(value == nil)
+        XCTAssertEqual(4, count)
+
+    }
+    
+    // time-related
+    func testSample() {
+        // TODO
+    }
+    
+    // nondeterministic
+    func testMerge() {
+        // TODO
+    }
+    
+    //  nondeterministic
+    func testRace() {
+        
+        let given: Stream<Either<String, Int>> =
+        Streams.race(
+            Streams.pure("A"),
+            Streams.pure( 1 ))
+        
+        for i in 1 ... 3 {
+            let a = given.array
+            XCTAssertEqual(2, a.count)
+            
+            if (a.count != 2) {
+                break
+            }
+            switch (a[0], a[1]) {
+            case (.Left(let l), .Right(let r)):
+                XCTAssertEqual(l.raw, "A")
+                XCTAssertEqual(r.raw,  1 )
+                
+            case (.Right(let r), .Left(let l)):
+                XCTAssertEqual(l.raw, "A")
+                XCTAssertEqual(r.raw,  1 )
+                
+            default:
+                XCTFail("unreachable")
+            }
+        }
     }
 
 }

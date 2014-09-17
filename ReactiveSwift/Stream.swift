@@ -56,11 +56,11 @@ public enum Packet<A> {
 
 public extension Stream {
     
-    public func merge<B>(f: () -> A -> Stream<B>, _ count: Int=Int.max) -> Stream<B> {
+    public func merge<B>(count: Int, _ f: () -> A -> Stream<B>) -> Stream<B> {
         return Stream<B>(Merge(self, f, count))
     }
 
-    public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(f, 1) }
+    public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(1, f) }
     
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
         return Stream<B>(OuterBinding(self, f))
@@ -172,6 +172,19 @@ public class Streams {
         }
     }
     
+    public class func exec<A>(property: [ExecutionProperty], f: () -> A) -> Stream<A> {
+        return source(property) { $0.flush(f()) }
+    }
+    
+    public class func range<A: ForwardIndexType>(range: Range<A>) -> Stream<A> {
+        return source { chan in
+            for e in range {
+                if !chan.isClosed { chan.emit(.Next(Box(e))) }
+            }
+            chan.emitIfOpen(.Done())
+        }
+    }
+
     public class func args<A>(a: A...) -> Stream<A> { return list(a) }
 
     public class func unpack<A>(s: Stream<Packet<A>>) -> Stream<A> {
@@ -188,20 +201,29 @@ public class Streams {
         }
     }
 
-    public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
+    public class func repeat<A>(value: A, _ delay: Double) -> Stream<A> {
         return Streams.source { chan in
             var holder: A? = value
             chan.setCloseHandler {
                 holder = nil
             }
-            chan.calleeContext.schedule(nil, delay) {
-                if let e = holder { chan.flush(e) }
+            repeatWhile(chan.calleeContext, delay) {
+                if let e = holder {
+                    chan.emitIfOpen(.Next(Box(e)))
+                }
+                return !chan.isClosed
             }
         }
     }
     
     public class func merge<A>(a: Stream<Stream<A>>, _ count: Int=Int.max) -> Stream<A> {
-        return a.merge({{ $0 }}, count)
+        return a.merge(count) {{ $0 }}
+    }
+}
+
+private func repeatWhile(context: ExecutionContext, delay: Double, f: () -> Bool) {
+    context.schedule(nil, delay) {
+        if f() { repeatWhile(context, delay, f) }
     }
 }
 

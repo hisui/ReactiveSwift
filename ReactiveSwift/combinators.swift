@@ -4,7 +4,31 @@ import Foundation
 
 public extension Stream {
 
-    public func delay(delay: Double) -> Stream<A> { return flatMap { Streams.timeout(delay, $0) } }
+    public func delay(delay: Double) -> Stream<A> {
+        return flatMap { Streams.repeat($0, delay).take(1) }
+    }
+    
+    public func sample<B>(tick: Stream<B>) -> Stream<(A?, B)> {
+        return Streams.race(tick, self).innerBind {
+            var last: Box<A?> = Box(nil)
+            return {
+                switch $0 {
+                case .Left (let box): return Streams.pure((last.raw, box.raw))
+                case .Right(let box):
+                    last = Box(+box)
+                    return Streams.done()
+                }
+            }
+        }
+    }
+    
+    public func sample(interval: Double) -> Stream<A?> {
+        return sample(Streams.repeat((), interval) ).map { $0.0 }
+    }
+    
+    public func throttle(interval: Double) -> Stream<A> {
+        return outerBind {{ Streams.timeout(interval, $0) }}
+    }
  
     public func takeWhile(predicate: A -> Bool) -> Stream<A> { return takeWhile_0 { predicate } }
     
@@ -55,7 +79,7 @@ public extension Stream {
     }
     
     public func barrier(that: Stream<Stream<A>>) -> Stream<A> {
-        return Streams.race(self, that).merge {
+        return Streams.race(self, that).merge(Int.max) {
             var count = 0
             return { $0.fold(
                 { o in count == 0 ? Streams.pure(o): Streams.done() },
@@ -116,7 +140,7 @@ public extension Streams {
     public class func mix<A>(a: [Stream<A>]) -> Stream<A> { return merge(list(a)) }
     
     public class func seq<A>(a: [Stream<A>]) -> Stream<[A]> {
-        return a.reduce(pure([])) { Streams.conj($0, $1).map { $0.0 + [$0.1] } }
+        return a.reduce(pure([])) { Streams.zip($0, $1).map { $0.0 + [$0.1] } }
     }
 
     public class func concat<A>(a: [Stream<A>]) -> Stream<A> { return flatten(list(a)) }
@@ -140,9 +164,9 @@ public extension Streams {
             }
         }
     }
-    
+
     // TODO HList
-    public class func disj<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
+    public class func combineLatest<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
         return race(a, b).innerBind {
             var lhs: Box<A>? = nil
             var rhs: Box<B>? = nil
@@ -159,7 +183,7 @@ public extension Streams {
     }
 
     // TODO done, HList
-    public class func conj<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
+    public class func zip<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
         // let exit = NSError()
         return race(a /* .fails(exit) */, b /* .fails(exit) */).innerBind {
             let queue = ArrayDeque<Either<A, B>>()
@@ -180,6 +204,10 @@ public extension Streams {
             }
         }
         // .recover { $0 === exit ? Streams.done(): Streams.fail($0) }
+    }
+    
+    public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
+        return Streams.repeat(value, delay).take(1)
     }
 
 }
