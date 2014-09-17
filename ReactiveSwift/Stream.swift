@@ -55,12 +55,18 @@ public enum Packet<A> {
 }
 
 public extension Stream {
+    
+    public func merge<B>(f: () -> A -> Stream<B>, _ count: Int=Int.max) -> Stream<B> {
+        return Stream<B>(Merge(self, f, count))
+    }
 
-    public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return Stream<B>(InnerBinding(self, f)) }
+    public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(f, 1) }
     
-    public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return Stream<B>(OuterBinding(self, f)) }
+    public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
+        return Stream<B>(OuterBinding(self, f))
+    }
     
-    public func flatMap<B>(f: A -> Stream<B>) -> Stream<B> { return self >>+ f }
+    public func flatMap<B>(f: A -> Stream<B>) -> Stream<B> { return innerBind({f}) }
     
     public func map<B>(f: A -> B) -> Stream<B> { return flatMap { Streams.pure(f($0)) } }
 
@@ -82,15 +88,13 @@ public extension Stream {
         }
     }
 
-    public func onClose<X>(action: () -> X) -> Stream<A> {
+    public func onClose(action: () -> ()) -> Stream<A> {
         return Streams.source([.AllowSync]) { chan in
             var base: Channel<A>? = nil
             chan.setCloseHandler {
-                chan.callerContext.schedule(chan.calleeContext, 0) {
-                    action()
-                    base?.close()
-                    base = nil
-                }
+                chan.callerContext.schedule(chan.calleeContext, 0, action)
+                base?.close()
+                base = nil
             }
             self.open(chan.calleeContext) {
                 base = $0
@@ -99,7 +103,7 @@ public extension Stream {
         }
     }
     
-    public func foreach<X>(action: A -> X) -> Stream<A> {
+    public func foreach(action: A -> ()) -> Stream<A> {
         return map {
             action($0)
             return $0
@@ -195,21 +199,10 @@ public class Streams {
             }
         }
     }
-}
-
-infix operator >>* { associativity left precedence 255 }
-public func >>* <A, B>(s: Stream<A>, f: A -> Stream<B>) -> Stream<B> {
-    return Stream(OuterBinding(s) { f })
-}
-
-infix operator >>+ { associativity left precedence 255 }
-public func >>+ <A, B>(s: Stream<A>, f: A -> Stream<B>) -> Stream<B> {
-    return Stream(InnerBinding(s) { f })
-}
-
-infix operator >< { associativity left precedence 255 }
-public func >< <A>(a: Stream<A>, b: Stream<A>) -> Stream<A> {
-    return Stream(Mix(a, b))
+    
+    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int=Int.max) -> Stream<A> {
+        return a.merge({{ $0 }}, count)
+    }
 }
 
 // TODO It shall be separated into `Channel` and `Dispatcher` alone..
@@ -336,39 +329,6 @@ private final class ClosureSource<A>: Source<A>  {
     }
 }
 
-private final class Mix<A>: Source<A> {
-
-    private let a: Stream<A>
-    private let b: Stream<A>
-    
-    init(_ a: Stream<A>, _ b: Stream<A>) {
-        self.a = a
-        self.b = b
-    }
-    
-    override func invoke(chan: Dispatcher<A>) {
-        var a: Channel<A>? = nil
-        var b: Channel<A>? = nil
-        let f = { (o: Channel<A>) in { (e: Packet<A>) -> () in
-            switch e {
-            case .Done():
-                if (a === o
-                    ? (a = nil, b)
-                    : (b = nil, a)).1 != nil { return }
-                
-            default: ()
-            }
-            chan.emitIfOpen(e)
-        }}
-        chan.setCloseHandler {
-            a?.close(); a = nil
-            b?.close(); b = nil
-        }
-        self.a.open(chan.calleeContext, { a = $0; return f(a!) })
-        self.b.open(chan.calleeContext, { b = $0; return f(b!) })
-    }
-}
-
 private final class OuterBinding<A, B>: Source<B> {
 
     private let outer: Stream<A>
@@ -419,43 +379,53 @@ private final class OuterBinding<A, B>: Source<B> {
     }
 }
 
-// TODO Solve the memory leak issue
-private final class InnerBinding<A, B>: Source<B> {
+private final class Merge<A, B>: Source<B> {
     
     private let outer: Stream<A>
+    private let count: Int
     private let block: () -> A -> Stream<B>
-
-    init(_ outer: Stream<A>, _ block: () -> A -> Stream<B>) {
+    
+    init(_ outer: Stream<A>, _ block: () -> A -> Stream<B>, _ count: Int) {
         self.outer = outer
+        self.count = count
         self.block = block
     }
-    
+
     override func invoke(chan: Dispatcher<B>) {
         
         var base: Channel<A>? = nil
-        var last: Channel<B>? = nil
+        var alive: [Channel<B>] = []
         let queue = ArrayDeque<Packet<A>>()
         
         chan.setCloseHandler {
-            last?.close(); last = nil
-            base?.close(); base = nil
             queue.clear()
+            base?.close()
+            base = nil
+            for e in alive {
+                e.close()
+            }
+            alive.removeAll(keepCapacity: false)
         }
 
         var next: (Packet<A> -> ())? = nil
         let bind = block()
         next = { e in
-            
             switch e {
             case .Next(let x):
-                bind(+x).open(chan.calleeContext) { ( last = $0 )
+                bind(+x).open(chan.calleeContext) { o in
+                    alive.append(o)
                     return { e in
                         switch e {
                         case let .Next(_): chan.emitIfOpen(e)
                         case let .Fail(x): chan.emitIfOpen(.Fail(x))
                             fallthrough
                         default:
-                            last = nil
+                            for i in 0 ..< alive.count {
+                                if (alive[i] === o) {
+                                    alive.removeAtIndex(i)
+                                    break
+                                }
+                            }
                             if let e = queue.pop() { next!(e) }
                         }
                     }
@@ -466,7 +436,7 @@ private final class InnerBinding<A, B>: Source<B> {
         }
         outer.open(chan.calleeContext) { ( base = $0 )
             return {
-                if last != nil { queue.unshift($0) } else { next!($0) }
+                if alive.count < self.count { next!($0) } else { queue.unshift($0) }
             }
         }
     }

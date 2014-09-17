@@ -4,7 +4,7 @@ import Foundation
 
 public extension Stream {
 
-    public func delay(delay: Double) -> Stream<A> { return self >>+ { Streams.timeout(delay, $0) } }
+    public func delay(delay: Double) -> Stream<A> { return flatMap { Streams.timeout(delay, $0) } }
  
     public func takeWhile(predicate: A -> Bool) -> Stream<A> { return takeWhile_0 { predicate } }
     
@@ -54,29 +54,15 @@ public extension Stream {
         abort()
     }
     
-    // TODO test, error, done
     public func barrier(that: Stream<Stream<A>>) -> Stream<A> {
-        return Streams.source { chan in
-            var block: Channel<A>? = nil
-            var inner: Channel<A>? = nil
-            var outer: Channel<Stream<A>>? = nil
-            chan.setCloseHandler {
-                block?.close()
-                inner?.close()
-                outer?.close()
-            }
-            self.open(chan.calleeContext) { (block = $0)
-                return { if inner == nil { chan.emitIfOpen($0) } }
-            }
-            that.open(chan.calleeContext) { (outer = $0)
-                return { $0.value?
-                    .onClose { inner = nil }
-                    .open(chan.calleeContext) {
-                        inner = $0
-                        return { if let o = $0.value { chan.emitIfOpen(.Next(Box(o))) } }
-                    }
-                    ()
-                }
+        return Streams.race(self, that).merge {
+            var count = 0
+            return { $0.fold(
+                { o in count == 0 ? Streams.pure(o): Streams.done() },
+                { o in
+                    ++count
+                    return o.onClose { count -= 1 }
+                })
             }
         }
     }
@@ -125,9 +111,9 @@ private func counter<X>(var n: UInt) -> (X -> Bool) { return { _ in --n == 0 } }
 
 public extension Streams {
     
-    public class func flatten<A>(s: Stream<Stream<A>>) -> Stream<A> { return s >>+ { $0 } }
+    public class func flatten<A>(s: Stream<Stream<A>>) -> Stream<A> { return s.flatMap { $0 } }
     
-    public class func mix<A>(a: [Stream<A>]) -> Stream<A> { return a.reduce(done(), (><)) }
+    public class func mix<A>(a: [Stream<A>]) -> Stream<A> { return merge(list(a)) }
     
     public class func seq<A>(a: [Stream<A>]) -> Stream<[A]> {
         return a.reduce(pure([])) { Streams.conj($0, $1).map { $0.0 + [$0.1] } }
@@ -137,7 +123,7 @@ public extension Streams {
     
     public class func race<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<Either<A, B>>
     {
-        return a.map { .Left(Box($0)) } >< b.map { .Right(Box($0)) }
+        return mix([a.map { .Left (Box($0)) }, b.map { .Right(Box($0)) }])
     }
     
     public class func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {

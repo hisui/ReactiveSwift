@@ -140,6 +140,9 @@ class StreamTests: XCTestCase {
             let a = given.array
             XCTAssertEqual(2, a.count)
 
+            if (a.count != 2) {
+                break
+            }
             switch (a[0], a[1]) {
             case (.Left(let l), .Right(let r)):
                 XCTAssertEqual(l.raw, "A")
@@ -176,12 +179,12 @@ class StreamTests: XCTestCase {
         var closed2 = 0
         
         let given: Stream<Int> = (Streams.args(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-            .foreach { _ in passed1++ }
-            .onClose {      closed1++ }
+            .foreach { _ in passed1++; () }
+            .onClose {      closed1++; () }
             .skip(2)
             .take(3)
-            .foreach { _ in passed2++ }
-            .onClose {      closed2++ })
+            .foreach { _ in passed2++; () }
+            .onClose {      closed2++; () })
         
         for i in 1 ... 3 {
             XCTAssertEqual([2, 3, 4], given.array)
