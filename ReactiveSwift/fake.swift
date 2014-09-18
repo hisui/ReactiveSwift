@@ -118,7 +118,6 @@ public class FakeExecutor {
             for i in reverse(a) { tasks.removeAtIndex(i) }
         }
         currentTime = time
-        println("\(tasks.count) tasks remaining")
         return n > 0
     }
 

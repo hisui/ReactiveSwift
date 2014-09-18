@@ -173,17 +173,23 @@ public class Streams {
     public class func source<A>(property: [ExecutionProperty], f: Dispatcher<A> -> ()) -> Stream<A> {
         return Stream(ClosureSource<A>(property, f))
     }
-
-    public class func pure<A>(value: A) -> Stream<A> { return source { $0.flush(value) } }
     
     public class func none<A>() -> Stream<A> { return source { _ in () } }
+
+    public class func pure<A>(value: A) -> Stream<A> {
+        return source([.AllowSync]) { $0.flush(value) }
+    }
     
-    public class func done<A>() -> Stream<A> { return source { $0.emit(.Done()) } }
+    public class func done<A>() -> Stream<A> {
+        return source([.AllowSync]) { $0.emit(.Done()) }
+    }
     
-    public class func fail<A>(error: NSError) -> Stream<A> { return source { $0.emit(.Fail(error)) } }
+    public class func fail<A>(error: NSError) -> Stream<A> {
+        return source([.AllowSync]) { $0.emit(.Fail(error)) }
+    }
 
     public class func list<A>(a: [A]) -> Stream<A> {
-        return source { chan in
+        return source([.AllowSync]) { chan in
             var i = 0
             while i < a.count && !chan.isClosed {
                 chan.emit(.Next(Box( a[i++] )))

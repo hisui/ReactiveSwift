@@ -171,7 +171,7 @@ class StreamTests: XCTestCase {
     }
     
     func testOnCloseAndForEach() {
-        /*
+        
         var passed1 = 0
         var passed2 = 0
         
@@ -179,12 +179,13 @@ class StreamTests: XCTestCase {
         var closed2 = 0
         
         let given: Stream<Int> = (Streams.range(0 ... 9)
-            .foreach { e in passed1++;println("passage -- \(e)"); () }
+            .foreach { _ in passed1++; () }
             .onClose {      closed1++; () }
             .skip(2)
             .take(3)
             .foreach { _ in passed2++; () }
-            .onClose {      closed2++; () })
+            .onClose {      closed2++; () }
+        )
         
         for i in 1 ... 1 {
             XCTAssertEqual([2, 3, 4], toArray(given))
@@ -192,10 +193,10 @@ class StreamTests: XCTestCase {
             XCTAssertEqual(5*i, passed1)
             XCTAssertEqual(3*i, passed2)
             
-            XCTAssertEqual(i, closed2)
+            XCTAssertEqual(i, closed1)
             XCTAssertEqual(i, closed2)
         }
-        */
+
     }
     
     func testIsolation() {
@@ -347,7 +348,7 @@ class StreamTests: XCTestCase {
     
     // time-related
     func testThrottle() {
-        /*
+
         var value: String? = nil
         var count: Int     = 0
         
@@ -389,7 +390,7 @@ class StreamTests: XCTestCase {
         consumeUntil(15)
         XCTAssertTrue(value == nil)
         XCTAssertEqual(5, count)
-*/
+
     }
     
     // time-related
