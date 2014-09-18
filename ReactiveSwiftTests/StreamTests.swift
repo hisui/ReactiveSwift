@@ -3,36 +3,70 @@
 import XCTest
 import ReactiveSwift
 
-// helper extension for easy testing
 private extension Stream {
-    var array: [A] {
-        get { return FakeExecutor.accumulateElementsWhile(self) { true } }
-    }
-    
     func isolated<B>(name: String, f: Stream<A> -> Stream<B>) -> Stream<B> {
         return isolated([.Actor(FakePID(name))], f: f)
     }
 }
 
 class StreamTests: XCTestCase {
+    
+    var executor: FakeExecutor? = nil
+    var contexts = [ExecutionContext]()
+    
+    func consumeUntil(time: Double) {
+        executor!.consumeUntil(time)
+    }
+    
+    func consumeAll() {
+        executor!.consumeAll()
+    }
 
+    func newContext() -> ExecutionContext {
+        let context = executor!.newContext()
+        contexts.append(context)
+        return context
+    }
+    
+    func toArray<A>(s: Stream<A>) -> [A] {
+        var a = [A]()
+        s.open(newContext()).subscribe {
+            if let o = $0.value { a.append(o) }
+        }
+        consumeAll()
+        return a
+    }
+
+    override func setUp() {
+        executor = FakeExecutor()
+        contexts = []
+    }
+    
+    override func tearDown() {
+        for e in contexts {
+            e.close()
+        }
+        XCTAssertEqual(0, executor!.numberOfRunningContexts)
+        executor = nil
+        contexts.removeAll(keepCapacity: true)
+    }
     
     func testSimple() {
-        XCTAssertEqual(["foo"], Streams.pure("foo").array)
+        XCTAssertEqual(["foo"], toArray(Streams.pure("foo")))
     }
     
     func testCreateStreamFromCertainElements() {
         
-        XCTAssertEqual(["foo"], Streams.pure("foo").array
+        XCTAssertEqual(["foo"], toArray(Streams.pure("foo"))
             , "`Streams.pure()` returns a stream just with one element.")
         
-        XCTAssertEqual([2, 3, 5], Streams.args(2, 3, 5).array
+        XCTAssertEqual([2, 3, 5], toArray(Streams.args(2, 3, 5))
             , "`Streams.args()` returns a stream whose form is identical to its argument values.")
         
-        XCTAssertEqual(Array<Int>(), Streams.done().array
+        XCTAssertEqual(Array<Int>(), toArray(Streams.done())
             , "`Streams.done()` returns an empty stream.")
         
-        XCTAssertEqual([1, 2, 3], Streams.range(1 ... 3).array)
+        XCTAssertEqual([1, 2, 3], toArray(Streams.range(1 ... 3)))
     }
     
     func testCreateNeverEndingStream() {
@@ -50,13 +84,13 @@ class StreamTests: XCTestCase {
         let a = [2, 3, 5]
         let s = Streams.list(a)
         
-        XCTAssertEqual(a, s.array)
-        XCTAssertEqual(a, s.array)
-        XCTAssertEqual(a, s.array)
+        XCTAssertEqual(a, toArray(s))
+        XCTAssertEqual(a, toArray(s))
+        XCTAssertEqual(a, toArray(s))
     }
     
     func testMap() {
-        XCTAssertEqual([4, 9, 25], Streams.args(2, 3, 5).map { $0 * $0 }.array
+        XCTAssertEqual([4, 9, 25], toArray(Streams.args(2, 3, 5).map { $0 * $0 })
             , "Stream#map() makes a stream whose elements are the results of the function applications to the original stream's elements.")
     }
     
@@ -65,7 +99,7 @@ class StreamTests: XCTestCase {
         let given = Streams.args("f o o", "b a r", "b a z")
         
         XCTAssertEqual(["f", "o", "o", "b", "a", "r", "b", "a", "z"]
-            , given.flatMap { Streams.list($0.componentsSeparatedByString(" ")) }.array
+            , toArray(given.flatMap { Streams.list($0.componentsSeparatedByString(" ")) })
             , "Stream#flatMap()")
     }
     
@@ -73,20 +107,20 @@ class StreamTests: XCTestCase {
         
         let given = Streams.range(0 ... 9)
         
-        XCTAssertEqual([1, 3, 5, 7, 9], given.filter({ $0 % 2 == 1 }).array)
-        XCTAssertEqual([0, 2, 4, 6, 8], given.filter({ $0 % 2 == 0 }).array)
+        XCTAssertEqual([1, 3, 5, 7, 9], toArray(given.filter({ $0 % 2 == 1 })))
+        XCTAssertEqual([0, 2, 4, 6, 8], toArray(given.filter({ $0 % 2 == 0 })))
     }
     
     func testTakeAndSkip() {
         
         XCTAssertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]
-            , Streams.range(1 ... 9).skip(0).take(9).array)
+            , toArray(Streams.range(1 ... 9).skip(0).take(9)))
         
         XCTAssertEqual([]
-            , Streams.range(1 ... 9).take(0).skip(9).array)
+            , toArray(Streams.range(1 ... 9).take(0).skip(9)))
         
         XCTAssertEqual([2, 3, 4, 5, 6, 7, 8]
-            , Streams.range(1 ... 9).skip(1).take(7).array)
+            , toArray(Streams.range(1 ... 9).skip(1).take(7)))
     }
     
     func testFlatten() {
@@ -98,15 +132,16 @@ class StreamTests: XCTestCase {
         
         let result: Stream<String> = Streams.flatten(given)
         
-        XCTAssertEqual(["A", "B", "C"], result.array)
+        XCTAssertEqual(["A", "B", "C"], toArray(result))
     }
     
     func testConcat() {
         
-        XCTAssertEqual(["A", "B", "C"], Streams.concat([
-            Streams.pure("A"),
-            Streams.pure("B"),
-            Streams.pure("C") ]).array)
+        XCTAssertEqual(["A", "B", "C"], toArray(
+            Streams.concat([
+                Streams.pure("A"),
+                Streams.pure("B"),
+                Streams.pure("C") ])))
     }
 
     func testZip() {
@@ -114,7 +149,7 @@ class StreamTests: XCTestCase {
         let a = Streams.args("A", "B", "C")
         let b = Streams.args(1, 2, 3)
 
-        let result = Streams.zip(a, b).array
+        let result = toArray(Streams.zip(a, b))
         XCTAssertEqual(["A", "B", "C"], result.map { $0.0 })
         XCTAssertEqual([  1,   2,   3], result.map { $0.1 })
 
@@ -127,7 +162,8 @@ class StreamTests: XCTestCase {
     }
     
     func testDistinct() {
-        XCTAssertEqual([1, 2, 3, 4, 5], Streams.distinct(Streams.args(1, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5)).array)
+        XCTAssertEqual([1, 2, 3, 4, 5],
+            toArray(Streams.distinct(Streams.args(1, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5))))
     }
     
     func testSeq() {
@@ -138,7 +174,7 @@ class StreamTests: XCTestCase {
             Streams.pure("C")])
         
         for i in 1 ... 3 {
-            XCTAssertEqual([["A", "B", "C"]], given.array)
+            XCTAssertEqual([["A", "B", "C"]], toArray(given))
         }
     }
     
@@ -159,7 +195,7 @@ class StreamTests: XCTestCase {
             .onClose {      closed2++; () })
         
         for i in 1 ... 3 {
-            XCTAssertEqual([2, 3, 4], given.array)
+            XCTAssertEqual([2, 3, 4], toArray(given))
             
             XCTAssertEqual(5*i, passed1)
             XCTAssertEqual(3*i, passed2)
@@ -184,7 +220,7 @@ class StreamTests: XCTestCase {
             .zipWithContext().map(f))
         
         for i in 1 ... 3 {
-            XCTAssertEqual(["A", "B", "C"].map { "\($0):main:iso1:iso2:iso1:iso3:main" }, given.array)
+            XCTAssertEqual(["A", "B", "C"].map { "\($0):main:iso1:iso2:iso1:iso3:main" }, toArray(given))
         }
     }
     
@@ -192,7 +228,67 @@ class StreamTests: XCTestCase {
         
         let error = NSError()
         
-        XCTAssertEqual([error], Streams.fail(error).recover { Streams.pure($0) }.array)
+        XCTAssertEqual([error], toArray(Streams.fail(error).recover { Streams.pure($0) }))
+    }
+    
+    // time-related
+    func testOuterBind() {
+
+        var value: String? = nil
+        var count: Int     = 0
+
+        var outer: Dispatcher<Stream<String>>? = nil
+        let exec = FakeExecutor()
+        let chan: Channel<String> = Streams.source { outer = $0 }.outerBind {{ $0 }}.open(exec.newContext())
+        chan.subscribe {
+            value = $0.value
+            count++
+        }
+        
+        outer?.emit(.Next(Box(Streams.pure("A"))))
+        
+        exec.consumeAll()
+        XCTAssertEqual("A", value!)
+        XCTAssertEqual(1, count)
+
+        var inner1: Dispatcher<String>? = nil
+        outer?.emit(.Next(Box(Streams.source {
+            inner1 = $0
+            inner1?.setCloseHandler { inner1 = nil }
+        })))
+        
+        exec.consumeAll()
+        XCTAssertTrue(inner1 != nil)
+        XCTAssertEqual("A", value!)
+        XCTAssertEqual(1, count)
+        
+        inner1?.emit(.Next(Box("B")))
+        
+        exec.consumeAll()
+        XCTAssertEqual("B", value!)
+        XCTAssertEqual(2, count)
+        
+        var inner2: Dispatcher<String>? = nil
+        outer?.emit(.Next(Box(Streams.source {
+            inner2 = $0
+            inner2?.setCloseHandler { inner2 = nil }
+        })))
+
+        exec.consumeAll()
+        XCTAssertEqual("B", value!)
+        XCTAssertEqual(2, count)
+        XCTAssertTrue(inner1 == nil)
+        XCTAssertTrue(inner2 != nil)
+        
+        inner2?.emit(.Next(Box("C")))
+        inner2?.emit(.Done())
+        
+        exec.consumeAll()
+        XCTAssertEqual("C", value!)
+        XCTAssertEqual(3, count)
+        XCTAssertTrue(inner1 == nil)
+        XCTAssertTrue(inner2 == nil)
+
     }
     
     // time-related
@@ -201,33 +297,53 @@ class StreamTests: XCTestCase {
         var value: String? = nil
         var count: Int     = 0
         
-        let exec = FakeExecutor()
-        let chan = Streams.repeat("A", 2).open(exec.newContext())
+        let chan = Streams.repeat("A", 2).open(newContext())
         chan.subscribe {
             value = $0.value
             count++
         }
-        
-        exec.consumeUntil(0)
+
+        consumeUntil(1)
         XCTAssertTrue(value == nil)
         XCTAssertEqual(0, count)
         
-        exec.consumeUntil(1)
-        XCTAssertTrue(value == nil)
-        XCTAssertEqual(0, count)
-        
-        exec.consumeUntil(3)
-        XCTAssertTrue(value == "A")
+        consumeUntil(3)
+        XCTAssertEqual("A", value!)
         XCTAssertEqual(1, count)
         
-        exec.consumeUntil(5)
-        XCTAssertTrue(value == "A")
+        consumeUntil(5)
+        XCTAssertEqual("A", value!)
+        XCTAssertEqual(2, count)
+        
+        chan.close()
+        
+        consumeUntil(100)
+        XCTAssertEqual("A", value!)
         XCTAssertEqual(2, count)
 
     }
     
     // time-related
     func testTimeout() {
+        
+        var store = [String]()
+        var count = 0
+
+        let context = newContext()
+        Streams.timeout(2, "A")
+        .open(context)
+        .subscribe {
+            if let e = $0.value { store.append(e) }
+            count++
+        }
+
+        consumeUntil(1)
+        XCTAssertEqual([], store)
+        XCTAssertEqual(0, count)
+        
+        consumeUntil(100)
+        XCTAssertEqual(["A"], store)
+        XCTAssertEqual(2, count) // .Next("A") + .Done()
     }
     
     // time-related
@@ -293,7 +409,7 @@ class StreamTests: XCTestCase {
             Streams.pure( 1 ))
         
         for i in 1 ... 3 {
-            let a = given.array
+            let a = toArray(given)
             XCTAssertEqual(2, a.count)
             
             if (a.count != 2) {

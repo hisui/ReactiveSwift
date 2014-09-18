@@ -79,7 +79,7 @@ public extension Stream {
     }
     
     public func barrier(that: Stream<Stream<A>>) -> Stream<A> {
-        return Streams.race(self, that).merge(-1) {
+        return Streams.race(self, that).merge {
             var count = 0
             return { $0.fold(
                 { o in count == 0 ? Streams.pure(o): Streams.done() },

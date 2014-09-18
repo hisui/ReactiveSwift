@@ -64,6 +64,8 @@ public enum Packet<A> {
 
 public extension Stream {
     
+    public func merge<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(-1, f) }
+    
     public func merge<B>(count: Int, _ f: () -> A -> Stream<B>) -> Stream<B> {
         return Stream<B>(Merge(self, f, count))
     }
@@ -71,7 +73,7 @@ public extension Stream {
     public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(1, f) }
     
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
-        return merge(-1) {
+        return merge {
             var last: Channel<B>? = nil
             let bind = f()
             return { e in
@@ -329,6 +331,7 @@ public class Dispatcher<A>: Channel<A> {
         self.calleeContext.schedule(self.callerContext, 0) {
             self.closeHandler?()
             self.closeHandler = nil
+            self.calleeContext.close()
         }
     }
 

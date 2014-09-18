@@ -29,6 +29,9 @@ public protocol ExecutionContext {
     /// Spawns another new context derived to this, whose behavior will be guided by the given properties.
     func requires(properties: [ExecutionProperty]) -> ExecutionContext
 
+    ///
+    func close()
+
 }
 
 public func ==(lhs: PID, rhs: PID) -> Bool { return lhs.equals(rhs) }

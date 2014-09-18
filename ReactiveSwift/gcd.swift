@@ -47,6 +47,8 @@ public class GCDExecutionContext: ExecutionContext {
         return GCDExecutionContext(GCDExecutionContextConfig.parse(property, config.queue))
     }
 
+    public func close() { /* no-op */ }
+
 }
 
 public extension Stream {

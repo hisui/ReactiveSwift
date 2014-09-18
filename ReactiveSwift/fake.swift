@@ -23,6 +23,7 @@ public class FakeExecutionContext: ExecutionContext {
         self.executor = executor
         self.synch = synch
         self.actor = actor
+        executor.count++
     }
     
     public var pid: String { get { return actor } }
@@ -52,14 +53,20 @@ public class FakeExecutionContext: ExecutionContext {
         }
         return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor)
     }
+    
+    public func close() { executor.count-- }
+
 }
 
 public class FakeExecutor {
     
     private var currentTime: Double = 0
-    private var tasks: [Task] = []
+    private var tasks = [Task]()
+    private var count = 0
     
     public init() {}
+    
+    public var numberOfRunningContexts: Int { get { return count } }
 
     public func newContext() -> ExecutionContext { return FakeExecutionContext(self, false, "main") }
     
