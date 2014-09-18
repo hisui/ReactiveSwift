@@ -44,6 +44,14 @@ public enum Packet<A> {
         }
     }}
     
+    public var error: NSError? { get {
+        switch self {
+        case .Fail(let x): return x
+        default:
+            return nil
+        }
+    }}
+    
     func map<B>(f: A -> B) -> Packet<B> {
         switch self {
         case let .Next(x): return .Next(x.map(f))
@@ -63,7 +71,17 @@ public extension Stream {
     public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(1, f) }
     
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
-        return Stream<B>(OuterBinding(self, f))
+        return merge(-1) {
+            var last: Channel<B>? = nil
+            let bind = f()
+            return { e in
+                return pipe([.AllowSync]) { chan in
+                    last?.close()
+                    last = chan
+                    return (bind(e), chan.calleeContext.requires([.AllowSync]))
+                }
+            }
+        }
     }
     
     public func flatMap<B>(f: A -> Stream<B>) -> Stream<B> { return innerBind({f}) }
@@ -216,7 +234,7 @@ public class Streams {
         }
     }
     
-    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int=Int.max) -> Stream<A> {
+    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int = -1) -> Stream<A> {
         return a.merge(count) {{ $0 }}
     }
 }
@@ -351,56 +369,6 @@ private final class ClosureSource<A>: Source<A>  {
     }
 }
 
-private final class OuterBinding<A, B>: Source<B> {
-
-    private let outer: Stream<A>
-    private let block: () -> A -> Stream<B>
-    
-    init(_ outer: Stream<A>, _ block: () -> A -> Stream<B>) {
-        self.outer = outer
-        self.block = block
-    }
-    
-    override func invoke(chan: Dispatcher<B>) {
-
-        var base: Channel<A>? = nil
-        var last: Channel<B>? = nil
-
-        chan.setCloseHandler {
-            last?.close(); last = nil
-            base?.close(); base = nil
-        }
-        outer.open(chan.calleeContext) { ( base = $0 )
-            let bind = self.block()
-            return { e in
-                last?.close()
-                last = nil
-                switch e {
-                case .Next(let x):
-                    last = bind(+x).open(chan.calleeContext) { ( last = $0 )
-                        return { e in
-                            switch e {
-                            case let .Next(_): chan.emit(e)
-                            case let .Fail(x): chan.emit(.Fail(x))
-                                fallthrough
-                            default:
-                                last = nil
-                            }
-                        }
-                    }
-                
-                case let .Fail(x): chan.emitIfOpen(.Fail(x))
-                case let .Done( ): chan.emitIfOpen(.Done( ))
-                }
-            }
-        }
-    }
-    
-    override func isolate(callerContext: ExecutionContext) -> ExecutionContext {
-        return callerContext.requires([.AllowSync])
-    }
-}
-
 private final class Merge<A, B>: Source<B> {
     
     private let outer: Stream<A>
@@ -452,13 +420,21 @@ private final class Merge<A, B>: Source<B> {
                         }
                     }
                 }
-            case let .Fail(x): chan.emitIfOpen(.Fail(x))
             case let .Done( ): chan.emitIfOpen(.Done( ))
+            case let .Fail(x): chan.emitIfOpen(.Fail(x)) // unreachable
             }
         }
         outer.open(chan.calleeContext) { ( base = $0 )
-            return {
-                if alive.count < self.count { next!($0) } else { queue.unshift($0) }
+            return { e in
+                if let x = e.error {
+                    chan.emitIfOpen(.Fail(x))
+                }
+                else if alive.count != self.count {
+                    next!(e)
+                }
+                else {
+                    queue.unshift(e)
+                }
             }
         }
     }
