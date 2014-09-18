@@ -90,7 +90,10 @@ Streams.range(0 ... 9).merge(-1) {{
     $0 * $0 * $0 // assuming that this is a heavy process..
   }
 }}
-.subscribe { /* ... */ }
+.fold(0) { $0 + $1 }
+.subscribe { e: Packet<Int> in
+  if let o = e.value { println(o) } // ==> 2025
+}
 ```
 
 For more practices, the following link(s) can be helpful.
