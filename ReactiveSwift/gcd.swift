@@ -49,6 +49,8 @@ public class GCDExecutionContext: ExecutionContext {
 
     public func close() { /* no-op */ }
 
+    public func ensureCurrentlyInCompatibleContext() { /* no-op */ }
+
 }
 
 public extension Stream {

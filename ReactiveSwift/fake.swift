@@ -18,11 +18,14 @@ public class FakeExecutionContext: ExecutionContext {
     private let executor: FakeExecutor
     private let synch: Bool
     private let actor: String
+
+    public let name: String
     
-    private init(_ executor: FakeExecutor, _ synch: Bool, _ actor: String) {
+    private init(_ executor: FakeExecutor, _ synch: Bool, _ actor: String, _ name: String) {
         self.executor = executor
         self.synch = synch
         self.actor = actor
+        self.name = name
         executor.count++
     }
     
@@ -36,10 +39,10 @@ public class FakeExecutionContext: ExecutionContext {
     
     public func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ()) {
         if synch && delay == 0 {
-            task()
+            call(task)()
         }
         else {
-            executor.schedule(delay, task)
+            executor.schedule(delay, call(task))
         }
     }
 
@@ -51,10 +54,21 @@ public class FakeExecutionContext: ExecutionContext {
             default: ()
             }
         }
-        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor)
+        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, "* -> \(name)")
     }
     
     public func close() { executor.count-- }
+    
+    // TODO
+    public func ensureCurrentlyInCompatibleContext() {
+        // assert(self === executor.stack.head, "Out of context violation occured!")
+    }
+    
+    private func call(f: () -> ())() {
+        executor.stack.push(self)
+        f()
+        executor.stack.pop()
+    }
 
 }
 
@@ -63,13 +77,16 @@ public class FakeExecutor {
     private var currentTime: Double = 0
     private var tasks = [Task]()
     private var count = 0
-    
+    private let stack = ArrayDeque<FakeExecutionContext>()
+
     public init() {}
     
     public var numberOfRunningContexts: Int { get { return count } }
 
-    public func newContext() -> ExecutionContext { return FakeExecutionContext(self, false, "main") }
-    
+    public func newContext(name: String = "*") -> ExecutionContext {
+        return FakeExecutionContext(self, false, "main", name)
+    }
+
     public func consumeAll() -> Bool {
         return consumeUntil(currentTime)
     }
@@ -101,22 +118,10 @@ public class FakeExecutor {
             for i in reverse(a) { tasks.removeAtIndex(i) }
         }
         currentTime = time
+        println("\(tasks.count) tasks remaining")
         return n > 0
     }
-    
-    public func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
-        var a = Array<A>()
-        s.open(newContext()).subscribe {
-            if let o = $0.value { a.append(o) }
-        }
-        consumeUntil(currentTime, cond)
-        return a
-    }
-    
-    public class func accumulateElementsWhile<A>(s: Stream<A>, _ cond: () -> Bool) -> [A] {
-        return FakeExecutor().accumulateElementsWhile(s, cond)
-    }
-    
+
     func schedule(delay: Double, _ f: () -> ()) {
         tasks.append(Task(currentTime + delay, f))
     }

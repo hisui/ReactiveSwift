@@ -74,11 +74,11 @@ public extension Stream {
     
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
         return merge {
-            var last: Channel<B>? = nil
+            var last: Dispatcher<B>? = nil
             let bind = f()
             return { e in
                 return pipe([.AllowSync]) { chan in
-                    last?.close()
+                    last?.emitIfOpen(.Done())
                     last = chan
                     return (bind(e), chan.calleeContext.requires([.AllowSync]))
                 }
@@ -137,7 +137,7 @@ public extension Stream {
     }
     
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
-        return Streams.source() { chan in
+        return Streams.source([.AllowSync]) { chan in
             var base: Channel<A>? = nil
             chan.setCloseHandler {
                 base?.close()
@@ -277,6 +277,7 @@ public class Dispatcher<A>: Channel<A> {
     }
     
     public func emitIfOpen(e: Packet<A>) {
+        calleeContext.ensureCurrentlyInCompatibleContext()
         if calleeOpen {
             switch e {
             case .Next:
@@ -301,6 +302,7 @@ public class Dispatcher<A>: Channel<A> {
     public var isClosed: Bool { get { return !calleeOpen } }
 
     public func setCloseHandler(f: () -> ()) {
+        calleeContext.ensureCurrentlyInCompatibleContext()
         assert(closeHandler == nil, "Dispatcher<>#setCloseHandler cannot be called twice.")
         if (calleeOpen) {
             closeHandler = f
@@ -308,6 +310,7 @@ public class Dispatcher<A>: Channel<A> {
     }
 
     override public func subscribe(f: Packet<A> -> ()) {
+        callerContext.ensureCurrentlyInCompatibleContext()
         assert(eventHandler == nil, "Channel<>#subscribe has alreay been called.")
         if (callerOpen) {
             eventHandler = f
@@ -315,6 +318,7 @@ public class Dispatcher<A>: Channel<A> {
     }
 
     override public func close() {
+        callerContext.ensureCurrentlyInCompatibleContext()
         if (callerOpen) {
             callerOpen = false
             calleeContext.schedule(callerContext, 0) {
@@ -328,11 +332,9 @@ public class Dispatcher<A>: Channel<A> {
     }
     
     private func completeToClose() {
-        self.calleeContext.schedule(self.callerContext, 0) {
-            self.closeHandler?()
-            self.closeHandler = nil
-            self.calleeContext.close()
-        }
+        closeHandler?()
+        closeHandler = nil
+        calleeContext.close()
     }
 
 }
@@ -344,7 +346,10 @@ class Source<A> {
         if let f = cont(chan) {
             chan.subscribe(f)
         }
-        invoke(chan)
+        chan.calleeContext.schedule(callerContext, 0) {
+            self.invoke(chan)
+        }
+        callerContext.ensureCurrentlyInCompatibleContext()
         return chan
     }
     
@@ -403,9 +408,8 @@ private final class Merge<A, B>: Source<B> {
         var next: (Packet<A> -> ())? = nil
         let bind = block()
         next = { e in
-            switch e {
-            case .Next(let x):
-                bind(+x).open(chan.calleeContext) { o in
+            if let x = e.value {
+                bind(x).open(chan.calleeContext) { o in
                     alive.append(o)
                     return { e in
                         switch e {
@@ -423,8 +427,12 @@ private final class Merge<A, B>: Source<B> {
                         }
                     }
                 }
-            case let .Done( ): chan.emitIfOpen(.Done( ))
-            case let .Fail(x): chan.emitIfOpen(.Fail(x)) // unreachable
+            }
+            else if alive.count > 0 {
+                queue.push(e)
+            }
+            else {
+                chan.emitIfOpen(.Done())
             }
         }
         outer.open(chan.calleeContext) { ( base = $0 )

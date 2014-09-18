@@ -29,8 +29,11 @@ public protocol ExecutionContext {
     /// Spawns another new context derived to this, whose behavior will be guided by the given properties.
     func requires(properties: [ExecutionProperty]) -> ExecutionContext
 
-    ///
+    /// Closes this context and if possible releases the resources in this context.
     func close()
+    
+    /// Ensures that the caller of this method is really running in this context. And if not the application would abort.
+    func ensureCurrentlyInCompatibleContext()
 
 }
 
