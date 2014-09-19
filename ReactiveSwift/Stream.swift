@@ -77,10 +77,10 @@ public extension Stream {
             var last: Dispatcher<B>? = nil
             let bind = f()
             return { e in
-                return pipe([.AllowSync]) { chan in
+                return pipe([.AllowSync]) {
                     last?.emitIfOpen(.Done())
-                    last = chan
-                    return (bind(e), chan.calleeContext.requires([.AllowSync]))
+                    last = $0
+                    return bind(e)
                 }
             }
         }
@@ -131,36 +131,30 @@ public extension Stream {
     }
     
     public func isolated<B>(property: [ExecutionProperty], f: Stream<A> -> Stream<B>) -> Stream<B> {
-        return pipe(property) { chan in
-            (f(pipe([]) { _ in (self, chan.callerContext) }), chan.calleeContext)
+        return Streams.pure(()).zipWithContext().flatMap { e in
+            pipe(property) { _ in
+                f(Stream(Isolator(self, e.1)))
+            }
         }
     }
     
+    public func zipWith<B>(value: B) -> Stream<(A, B)> { return map { ($0, value) } }
+    
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
-        return Streams.source([.AllowSync]) { chan in
-            var base: Channel<A>? = nil
-            chan.setCloseHandler {
-                base?.close()
-                base = nil
-            }
-            self.open(chan.calleeContext) {
-                base = $0
-                return { chan.emitIfOpen($0.map { ($0, chan.calleeContext) } ) }
-            }
-        }
+        return pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
     }
+
 }
 
-// TODO thread safe
-private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> (Stream<A>, ExecutionContext)) -> Stream<A> {
+private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> Stream<A>) -> Stream<A> {
     return Streams.source(property) { chan in
         var base: Channel<A>? = nil
         chan.setCloseHandler {
             base?.close()
             base = nil
         }
-        let (s, context) = f(chan)
-        s .open(context) { ( base = $0 )
+        f(chan).open(chan.calleeContext) {
+            base = $0
             return { chan.emitIfOpen($0) }
         }
     }
@@ -289,6 +283,7 @@ public class Dispatcher<A>: Channel<A> {
             case .Next:
                 callerContext.schedule(calleeContext, 0) {
                     if (self.callerOpen) {
+                        self.callerContext.ensureCurrentlyInCompatibleContext()
                         self.eventHandler?(e)
                     }
                 }
@@ -299,7 +294,9 @@ public class Dispatcher<A>: Channel<A> {
                         self.eventHandler?(e)
                         self.eventHandler = nil
                     }
-                    self.completeToClose()
+                    self.calleeContext.schedule(self.callerContext, 0) {
+                        self.completeToClose()
+                    }
                 }
             }
         }
@@ -346,16 +343,24 @@ public class Dispatcher<A>: Channel<A> {
 }
 
 class Source<A> {
+    
+    func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
+    {
+        return open(callerContext, callerContext, cont)
+    }
 
-    func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
-        let chan = Dispatcher<A>(callerContext, isolate(callerContext))
+    func open
+        (   originContext: ExecutionContext
+        , _ callerContext: ExecutionContext
+        , _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
+    {
+        let chan = Dispatcher<A>(callerContext, isolate(originContext))
         if let f = cont(chan) {
             chan.subscribe(f)
         }
         chan.calleeContext.schedule(callerContext, 0) {
             self.invoke(chan)
         }
-        callerContext.ensureCurrentlyInCompatibleContext()
         return chan
     }
     
@@ -380,6 +385,25 @@ private final class ClosureSource<A>: Source<A>  {
     
     override func isolate(callerContext: ExecutionContext) -> ExecutionContext {
         return callerContext.requires(property)
+    }
+}
+
+private final class Isolator<A>: Source<A>  {
+    
+    private let outer: Stream<A>
+    private let context: ExecutionContext
+    
+    init(_ outer: Stream<A>, _ context: ExecutionContext) {
+        self.outer = outer
+        self.context = context
+    }
+    
+    override func open
+        (   originContext: ExecutionContext
+        , _ callerContext: ExecutionContext
+        , _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
+    {
+        return outer.o.open(context, callerContext, cont)
     }
 }
 

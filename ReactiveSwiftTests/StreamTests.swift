@@ -23,14 +23,14 @@ class StreamTests: XCTestCase {
     }
 
     func newContext(_ name: String = __FUNCTION__) -> ExecutionContext {
-        let context = executor!.newContext()
+        let context = executor!.newContext(name)
         contexts.append(context)
         return context
     }
     
-    func toArray<A>(s: Stream<A>) -> [A] {
+    func toArray<A>(s: Stream<A>, _ name: String = __FUNCTION__) -> [A] {
         var a = [A]()
-        s.open(newContext()).subscribe {
+        s.open(newContext(name)).subscribe {
             if let o = $0.value { a.append(o) }
         }
         consumeAll()
@@ -202,7 +202,7 @@ class StreamTests: XCTestCase {
     func testIsolation() {
         
         let f = { (e: String, ctx: ExecutionContext) in "\(e):\((ctx as FakeExecutionContext).pid)" }
-        
+
         let given = (Streams.args("A", "B", "C")
             .zipWithContext().map(f)
             .isolated("iso1") { $0

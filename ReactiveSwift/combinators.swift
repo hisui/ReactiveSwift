@@ -43,7 +43,7 @@ public extension Stream {
     }
 
     public func fold<B>(initial: B, _ f: () -> (B, A) -> B) -> Stream<B> {
-        return Streams.unpack(self.pack().innerBind {
+        return Streams.unpack(pack().innerBind {
             var a = initial
             var g = f()
             return {
@@ -105,7 +105,7 @@ public extension Stream {
         , during: A -> Stream<Packet<B>>
         , follow: A -> Stream<Packet<B>>) -> Stream<B>
     {
-        return Streams.unpack(self.innerBind {
+        return Streams.unpack(innerBind {
             let f = predicate()
             var b = false
             return { e in

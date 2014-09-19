@@ -13,7 +13,7 @@ public class FakePID: PID {
     }
 }
 
-public class FakeExecutionContext: ExecutionContext {
+public class FakeExecutionContext: ExecutionContext, Printable {
 
     private let executor: FakeExecutor
     private let synch: Bool
@@ -29,6 +29,8 @@ public class FakeExecutionContext: ExecutionContext {
         executor.count++
     }
     
+    public var description: String { get { return "\(name)@\(actor)" } }
+    
     public var pid: String { get { return actor } }
 
     public var currentTime: NSDate {
@@ -38,7 +40,10 @@ public class FakeExecutionContext: ExecutionContext {
     }
     
     public func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ()) {
-        if synch && delay == 0 {
+        if synch
+            && delay == 0
+            && actor == (callerContext as? FakeExecutionContext)?.actor
+        {
             call(task)()
         }
         else {
@@ -54,16 +59,17 @@ public class FakeExecutionContext: ExecutionContext {
             default: ()
             }
         }
-        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, "* -> \(name)")
+        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, "\(actor) -> \(name)")
     }
     
     public func close() { executor.count-- }
-    
-    // TODO
+
     public func ensureCurrentlyInCompatibleContext() {
-        // assert(self === executor.stack.head, "Out of context violation occured!")
+        if let top = executor.stack.last?.actor {
+            assert(top == actor, "[error] Out of context violation occured; `\(actor)` != `\(top)`")
+        }
     }
-    
+
     private func call(f: () -> ())() {
         executor.stack.push(self)
         f()
@@ -83,7 +89,7 @@ public class FakeExecutor {
     
     public var numberOfRunningContexts: Int { get { return count } }
 
-    public func newContext(name: String = "*") -> ExecutionContext {
+    public func newContext(_ name: String = __FUNCTION__) -> ExecutionContext {
         return FakeExecutionContext(self, false, "main", name)
     }
 
