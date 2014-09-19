@@ -59,7 +59,7 @@ public class FakeExecutionContext: ExecutionContext, Printable {
             default: ()
             }
         }
-        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, "\(actor) -> \(name)")
+        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, name)
     }
     
     public func close() { executor.count-- }

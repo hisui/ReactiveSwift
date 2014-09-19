@@ -131,16 +131,7 @@ public extension Stream {
     }
     
     public func isolated<B>(property: [ExecutionProperty], f: Stream<A> -> Stream<B>) -> Stream<B> {
-        return flatMap { e in
-            pipe(property) { _ in f(Streams.pure(e)) }
-        }
-        /*
-        return Streams.pure(()).zipWithContext().flatMap { e in
-            pipe(property) { _ in
-                f(Stream(Isolator(self, e.1)))
-            }
-        }
-        */
+        return flatMap { e in pipe(property) { _ in f(Streams.pure(e)) } }
     }
     
     public func zipWith<B>(value: B) -> Stream<(A, B)> { return map { ($0, value) } }
