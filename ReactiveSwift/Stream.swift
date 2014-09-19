@@ -131,11 +131,16 @@ public extension Stream {
     }
     
     public func isolated<B>(property: [ExecutionProperty], f: Stream<A> -> Stream<B>) -> Stream<B> {
+        return flatMap { e in
+            pipe(property) { _ in f(Streams.pure(e)) }
+        }
+        /*
         return Streams.pure(()).zipWithContext().flatMap { e in
             pipe(property) { _ in
                 f(Stream(Isolator(self, e.1)))
             }
         }
+        */
     }
     
     public func zipWith<B>(value: B) -> Stream<(A, B)> { return map { ($0, value) } }
@@ -343,18 +348,9 @@ public class Dispatcher<A>: Channel<A> {
 }
 
 class Source<A> {
-    
-    func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
-    {
-        return open(callerContext, callerContext, cont)
-    }
 
-    func open
-        (   originContext: ExecutionContext
-        , _ callerContext: ExecutionContext
-        , _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
-    {
-        let chan = Dispatcher<A>(callerContext, isolate(originContext))
+    func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
+        let chan = Dispatcher<A>(callerContext, isolate(callerContext))
         if let f = cont(chan) {
             chan.subscribe(f)
         }
@@ -385,25 +381,6 @@ private final class ClosureSource<A>: Source<A>  {
     
     override func isolate(callerContext: ExecutionContext) -> ExecutionContext {
         return callerContext.requires(property)
-    }
-}
-
-private final class Isolator<A>: Source<A>  {
-    
-    private let outer: Stream<A>
-    private let context: ExecutionContext
-    
-    init(_ outer: Stream<A>, _ context: ExecutionContext) {
-        self.outer = outer
-        self.context = context
-    }
-    
-    override func open
-        (   originContext: ExecutionContext
-        , _ callerContext: ExecutionContext
-        , _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A>
-    {
-        return outer.o.open(context, callerContext, cont)
     }
 }
 
