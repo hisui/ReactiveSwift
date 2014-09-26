@@ -3,20 +3,16 @@
 import Foundation
 
 /// A composable object which represents an event stream where multiple events are flowing.
-public struct Stream<A> {
-
-    private let o: Source<A>
-    
-    init(_ o: Source<A>) { self.o = o }
+public class Stream<A> {
 
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 
     public func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
-        return o.open(callerContext, cont)
+        return open(callerContext, cont)
     }
     
     public func open(callerContext: ExecutionContext) -> Channel<A> {
-        return o.open(callerContext) { _ in nil }
+        return open(callerContext) { _ in nil }
     }
 }
 
@@ -67,7 +63,7 @@ public extension Stream {
     public func merge<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(-1, f) }
     
     public func merge<B>(count: Int, _ f: () -> A -> Stream<B>) -> Stream<B> {
-        return Stream<B>(Merge(self, f, count))
+        return Merge(self, f, count)
     }
 
     public func innerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(1, f) }
@@ -77,7 +73,7 @@ public extension Stream {
             var last: Dispatcher<B>? = nil
             let bind = f()
             return { e in
-                return pipe([.AllowSync]) {
+                return Streams.pipe([.AllowSync]) {
                     last?.emitIfOpen(.Done())
                     last = $0
                     return bind(e)
@@ -131,29 +127,15 @@ public extension Stream {
     }
     
     public func isolated<B>(property: [ExecutionProperty], f: Stream<A> -> Stream<B>) -> Stream<B> {
-        return flatMap { e in pipe(property) { _ in f(Streams.pure(e)) } }
+        return flatMap { e in Streams.pipe(property) { _ in f(Streams.pure(e)) } }
     }
     
     public func zipWith<B>(value: B) -> Stream<(A, B)> { return map { ($0, value) } }
     
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
-        return pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
+        return Streams.pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
     }
 
-}
-
-private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> Stream<A>) -> Stream<A> {
-    return Streams.source(property) { chan in
-        var base: Channel<A>? = nil
-        chan.setCloseHandler {
-            base?.close()
-            base = nil
-        }
-        f(chan).open(chan.calleeContext) {
-            base = $0
-            return { chan.emitIfOpen($0) }
-        }
-    }
 }
 
 public class Streams {
@@ -161,7 +143,7 @@ public class Streams {
     public class func source<A>(f: Dispatcher<A> -> ()) -> Stream<A> { return source([], f) }
     
     public class func source<A>(property: [ExecutionProperty], f: Dispatcher<A> -> ()) -> Stream<A> {
-        return Stream(ClosureSource<A>(property, f))
+        return ClosureSource<A>(property, f)
     }
     
     public class func none<A>() -> Stream<A> { return source { _ in () } }
@@ -235,6 +217,21 @@ public class Streams {
     public class func merge<A>(a: Stream<Stream<A>>, _ count: Int = -1) -> Stream<A> {
         return a.merge(count) {{ $0 }}
     }
+    
+    public class func pipe<A>(property: [ExecutionProperty], _ f: Dispatcher<A> -> Stream<A>) -> Stream<A> {
+        return Streams.source(property) { chan in
+            var base: Channel<A>? = nil
+            chan.setCloseHandler {
+                base?.close()
+                base = nil
+            }
+            f(chan).open(chan.calleeContext) {
+                base = $0
+                return { chan.emitIfOpen($0) }
+            }
+        }
+    }
+
 }
 
 private func repeatWhile(context: ExecutionContext, delay: Double, f: () -> Bool) {
@@ -338,9 +335,9 @@ public class Dispatcher<A>: Channel<A> {
 
 }
 
-class Source<A> {
+class Source<A>: Stream<A> {
 
-    func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
+    override func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
         let chan = Dispatcher<A>(callerContext, isolate(callerContext))
         if let f = cont(chan) {
             chan.subscribe(f)
