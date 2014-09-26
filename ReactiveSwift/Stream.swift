@@ -4,11 +4,13 @@ import Foundation
 
 /// A composable object which represents an event stream where multiple events are flowing.
 public class Stream<A> {
+    
+    typealias Cont = Channel<A> -> (Packet<A> -> ())?
 
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 
-    public func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
-        return open(callerContext, cont)
+    public func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
+        abort()
     }
     
     public func open(callerContext: ExecutionContext) -> Channel<A> {
@@ -337,7 +339,7 @@ public class Dispatcher<A>: Channel<A> {
 
 class Source<A>: Stream<A> {
 
-    override func open(callerContext: ExecutionContext, _ cont: Channel<A> -> (Packet<A> -> ())?) -> Channel<A> {
+    override func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
         let chan = Dispatcher<A>(callerContext, isolate(callerContext))
         if let f = cont(chan) {
             chan.subscribe(f)

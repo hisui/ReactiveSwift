@@ -2,10 +2,10 @@
 
 import Foundation
 
-public class Subject<A> {
+public class Subject<A>: Stream<A> {
 
     private let property: [ExecutionProperty]
-    private var channels = Array<Dispatcher<A>> ()
+    private var channels = [Dispatcher<A>] ()
     private var value: A
     
     public init(_ initialValue: A, _ property: [ExecutionProperty]=[]) {
@@ -24,21 +24,23 @@ public class Subject<A> {
         }
         get { return self.value }
     }
-
-    public func split() -> Stream<A> {
-        // TODO notify packets are from "hot" channel
-        return Streams.source(property) { chan in
-            self.channels.append(chan)
-            chan.setCloseHandler {
-                for i in 0 ..< self.channels.count {
-                    if (self.channels[i] === chan) {
-                        self.channels.removeAtIndex(i)
-                        break
-                    }
+    
+    override public func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
+        let chan = Dispatcher<A>(callerContext, callerContext.requires(property))
+        chan.setCloseHandler {
+            for i in 0 ..< self.channels.count {
+                if (self.channels[i] === chan) {
+                    self.channels.removeAtIndex(i)
+                    break
                 }
             }
-            chan.emit(.Next(Box(self.value)))
         }
+        channels.append(chan)
+        if let f = cont(chan) {
+            chan.subscribe(f)
+        }
+        chan.emitIfOpen(.Next(Box(self.value)))
+        return chan
     }
     
     public var subscribers: Int { get { return channels.count } }
