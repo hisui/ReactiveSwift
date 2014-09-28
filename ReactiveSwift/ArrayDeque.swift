@@ -11,19 +11,19 @@ public class ArrayDeque<A> {
         while n < capacity {
             n *= 2
         }
-        dest = Array<A?>(count:n, repeatedValue:nil)
+        dest = [A?](count:n, repeatedValue:nil)
     }
     
-    public var count: Int { get { return size } }
+    public var count: Int { return size }
 
     public subscript(i: Int) -> A? { return (0 <= i && i < size) ? get(i): nil }
     
-    public var head: A? { get { return self[0] } }
+    public var head: A? { return self[0] }
     
-    public var last: A? { get { return self[size - 1] } }
+    public var last: A? { return self[size - 1] }
 
     public func clear() {
-        dest = Array<A?>(count:1, repeatedValue:nil)
+        dest = [A?](count:1, repeatedValue:nil)
         base = 0
         size = 0
     }
@@ -71,7 +71,7 @@ public class ArrayDeque<A> {
     }
     
     private func doubleCapacity() {
-        var a = Array<A?>(count:dest.count * 2, repeatedValue:nil)
+        var a = [A?](count:dest.count * 2, repeatedValue:nil)
         drainTo(&a)
         dest = a
         base = 0

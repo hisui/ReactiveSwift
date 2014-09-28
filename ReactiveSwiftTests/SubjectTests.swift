@@ -13,7 +13,7 @@ class SubjectTests: XCTestCase {
         var received1: Packet<Int> = .Done()
         let chan1 = subj.open(exec.newContext()) { _ in { received1 = $0 }}
         
-        XCTAssertEqual(1, subj.subscribers)
+        XCTAssertEqual(0, subj.subscribers)
         XCTAssertTrue(received1.value == nil)
         
         exec.consumeAll()
@@ -24,7 +24,7 @@ class SubjectTests: XCTestCase {
         var received2: Packet<Int> = .Done()
         let chan2 = subj.open(exec.newContext()) { _ in { received2 = $0 }}
         
-        XCTAssertEqual(2, subj.subscribers)
+        XCTAssertEqual(1, subj.subscribers)
         XCTAssertTrue(received2.value == nil)
         
         exec.consumeAll()

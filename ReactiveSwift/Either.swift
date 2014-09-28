@@ -11,11 +11,11 @@ public enum Either<L, R> {
         }
     }
     
-    public var right: R? { get {
+    public var right: R? {
         switch self {
         case .Right(let box): return +box
         default:
             return nil
         }
-    }}
+    }
 }

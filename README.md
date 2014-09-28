@@ -72,8 +72,7 @@ class MyButtonListener: ButtonListener {
 
 ```swift
 let observer: MyButtonObserver = /* ... */
-observer.subject
-.split().subscribe { (e: Packet<ButtonEvent>) in
+observer.subject.subscribe { (e: Packet<ButtonEvent>) in
   /* ... */
 }
 ```

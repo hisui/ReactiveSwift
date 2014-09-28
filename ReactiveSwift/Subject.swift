@@ -2,15 +2,13 @@
 
 import Foundation
 
-public class Subject<A>: Stream<A> {
+public class Subject<A>: Source<A> {
 
-    private let property: [ExecutionProperty]
     private var channels = [Dispatcher<A>] ()
     private var value: A
     
-    public init(_ initialValue: A, _ property: [ExecutionProperty]=[]) {
+    public init(_ initialValue: A) {
         self.value = initialValue
-        self.property = property
     }
 
     public var currentValue: A {
@@ -22,13 +20,13 @@ public class Subject<A>: Stream<A> {
                 }
             }
         }
-        get { return self.value }
+        get { return value }
     }
     
-    override public func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
-        let chan = Dispatcher<A>(callerContext, callerContext.requires(property))
+    override func invoke(chan: Dispatcher<A>) {
+        chan.emit(.Next(Box(value)))
         chan.setCloseHandler {
-            for i in 0 ..< self.channels.count {
+            for i in 0 ..< self.channels.count { // TODO thread safe
                 if (self.channels[i] === chan) {
                     self.channels.removeAtIndex(i)
                     break
@@ -36,13 +34,8 @@ public class Subject<A>: Stream<A> {
             }
         }
         channels.append(chan)
-        if let f = cont(chan) {
-            chan.subscribe(f)
-        }
-        chan.emitIfOpen(.Next(Box(self.value)))
-        return chan
     }
     
-    public var subscribers: Int { get { return channels.count } }
+    public var subscribers: Int { return channels.count }
 
 }
