@@ -47,8 +47,7 @@ class StreamTests: XCTestCase {
         for e in contexts {
             e.close()
         }
-        // TODO
-        // XCTAssertEqual(0, executor!.numberOfRunningContexts)
+        XCTAssertEqual(0, executor!.numberOfRunningContexts)
         executor = nil
         contexts.removeAll(keepCapacity: true)
     }
@@ -444,6 +443,28 @@ class StreamTests: XCTestCase {
             }
             XCTAssertEqual(2, a.count)
         }
+    }
+    
+    func testGroupBy() {
+        
+        let given = Streams.range(0 ... 9)
+        var group = [[Int]]()
+        
+        given
+        .groupBy { $0 % 2 }
+        .foreach { chan in
+            let i = group.count
+            group.append([])
+            chan.subscribe {
+                if let o = $0.value { group[i].append(o.1) }
+            }
+        }
+        .open(newContext())
+        
+        consumeAll()
+        
+        XCTAssertEqual([0, 2, 4, 6, 8], group[0])
+        XCTAssertEqual([1, 3, 5, 7, 9], group[1])
     }
 
 }

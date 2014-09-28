@@ -73,11 +73,6 @@ public extension Stream {
         })
     }
     
-    // TODO
-    public func groupBy<K: Hashable, Equatable>(f: A -> K) -> Stream<(K, Stream<A>)> {
-        abort()
-    }
-    
     public func barrier(that: Stream<Stream<A>>) -> Stream<A> {
         return Streams.race(self, that).merge {
             var count = 0
@@ -147,7 +142,7 @@ public extension Streams {
     
     public class func race<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<Either<A, B>>
     {
-        return mix([a.map { .Left (Box($0)) }, b.map { .Right(Box($0)) }])
+        return mix([a.map { .Left(Box($0)) }, b.map { .Right(Box($0)) }])
     }
     
     public class func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {
@@ -207,7 +202,7 @@ public extension Streams {
     }
     
     public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
-        return Streams.repeat(value, delay).take(1)
+        return repeat(value, delay).take(1)
     }
 
 }

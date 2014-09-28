@@ -137,8 +137,39 @@ public extension Stream {
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
         return Streams.pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
     }
+    
+    public func groupBy<K: Hashable>(f: A -> K) -> Stream<Channel<(K, A)>> {
+        return Streams.source() { outer in
+            var base: Channel<A>?
+            var map = [K: Dispatcher<(K, A)>]()
+            outer.setCloseHandler {
+                base?.close()
+                base = nil
+                for e in map.values { e.close() }
+            }
+            self.open(outer.calleeContext) { (base = $0)
+                return { e in
+                    switch e {
+                    case .Next(let x):
+                        let k = f(+x)
+                        var chan = map[k]
+                        if (chan == nil) {
+                            chan = Dispatcher(outer.callerContext, outer.calleeContext)
+                            map[k] = chan
+                            outer.emitIfOpen(.Next(Box(chan!)))
+                        }
+                        chan!.emit(.Next(Box((k, x.raw))))
+                    default:
+                        for o in map.values { o.emit(e.map { _ in undefined() } ) }
+                    }
+                }
+            }
+        }
+    }
 
 }
+
+private func undefined<X>() -> X { abort() }
 
 public class Streams {
 
@@ -402,7 +433,7 @@ private final class Merge<A, B>: Source<B> {
             alive.removeAll(keepCapacity: false)
         }
 
-        var next: (Packet<A> -> ())? = nil
+        var next: (Packet<A> -> ())!
         let bind = block()
         next = { e in
             if let x = e.value {
@@ -420,7 +451,7 @@ private final class Merge<A, B>: Source<B> {
                                     break
                                 }
                             }
-                            if let e = queue.pop() { next!(e) }
+                            if let e = queue.pop() { next(e) }
                         }
                     }
                 }
@@ -438,7 +469,7 @@ private final class Merge<A, B>: Source<B> {
                     chan.emitIfOpen(.Fail(x))
                 }
                 else if alive.count != self.count {
-                    next!(e)
+                    next(e)
                 }
                 else {
                     queue.unshift(e)
