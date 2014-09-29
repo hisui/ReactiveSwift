@@ -447,7 +447,7 @@ private final class Merge<A, B>: Source<B> {
                                     break
                                 }
                             }
-                            if let e = queue.pop() { next(e) }
+                            if let e = queue.pop() { next?(e) }
                         }
                     }
                 }
