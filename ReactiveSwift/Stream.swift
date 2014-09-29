@@ -419,25 +419,21 @@ private final class Merge<A, B>: Source<B> {
 
     override func invoke(chan: Dispatcher<B>) {
         
+        var alive = [Channel<B>]()
         var base: Channel<A>? = nil
-        var alive: [Channel<B>] = []
-        let queue = ArrayDeque<Packet<A>>()
-        
+        var next: (Packet<A> -> ())!
         chan.setCloseHandler {
-            queue.clear()
             base?.close()
             base = nil
-            for e in alive {
-                e.close()
-            }
-            alive.removeAll(keepCapacity: false)
+            next = nil
+            for e in alive { e.close() }
         }
-
-        var next: (Packet<A> -> ())!
-        let bind = block()
+        
+        let queue = ArrayDeque<Packet<A>>()
+        let block = self.block()
         next = { e in
             if let x = e.value {
-                bind(x).open(chan.calleeContext) { o in
+                block(x).open(chan.calleeContext) { o in
                     alive.append(o)
                     return { e in
                         switch e {
