@@ -8,9 +8,8 @@ public class FakePID: PID {
     
     public init(_ name: String) { self.name = name }
     
-    public override func equals(o: PID) -> Bool {
-        return (o as? FakePID)?.name == name
-    }
+    public override func equals(o: PID) -> Bool { return (o as? FakePID)?.name == name }
+
 }
 
 public class FakeExecutionContext: ExecutionContext, Printable {
@@ -29,14 +28,12 @@ public class FakeExecutionContext: ExecutionContext, Printable {
         executor.count++
     }
     
-    public var description: String { get { return "\(name)@\(actor)" } }
+    public var description: String { return "\(name)@\(actor)" }
     
-    public var pid: String { get { return actor } }
+    public var pid: String { return actor }
 
     public var currentTime: NSDate {
-        get {
-            return NSDate(timeIntervalSince1970: executor.currentTime)
-        }
+        return NSDate(timeIntervalSince1970: executor.currentTime)
     }
     
     public func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ()) {
@@ -56,7 +53,8 @@ public class FakeExecutionContext: ExecutionContext, Printable {
         for e in property {
             switch e {
             case .Actor(let pid as FakePID): actor = pid.name
-            default: ()
+            default:
+                ()
             }
         }
         return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, name)
@@ -103,11 +101,10 @@ public class FakeExecutor {
         while cond() {
             var a = Array<Int>()
             var t = Double.infinity
-            for var i = 0; i < tasks.count; ++i {
-                let e = tasks[i]
-                if (e.t <= min(time, t)) {
-                    if (e.t < t) {
-                        t = e.t
+            for (i, e) in enumerate(tasks) {
+                if (e.time <= min(time, t)) {
+                    if (t > e.time) {
+                        t = e.time
                         a.removeAll(keepCapacity: true)
                     }
                     a.append(i)
@@ -119,7 +116,7 @@ public class FakeExecutor {
             currentTime = t
             for i in a {
                 n++
-                tasks[i].f()
+                tasks[i].task()
             }
             for i in reverse(a) { tasks.removeAtIndex(i) }
         }
@@ -135,11 +132,11 @@ public class FakeExecutor {
 
 private class Task {
     
-    let t: Double
-    let f: () -> ()
+    let time: Double
+    let task: () -> ()
     
-    init(_ t: Double, _ f: () -> ()) {
-        self.t = t
-        self.f = f
+    init(_ time: Double, _ task: () -> ()) {
+        self.time = time
+        self.task = task
     }
 }

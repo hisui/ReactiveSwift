@@ -30,16 +30,16 @@ public extension Stream {
         return outerBind {{ Streams.timeout(interval, $0) }}
     }
  
-    public func takeWhile(predicate: A -> Bool) -> Stream<A> { return takeWhile_0 { predicate } }
+    public func takeWhile(predicate: A -> Bool) -> Stream<A> { return takeWhile { predicate } }
     
-    public func skipWhile(predicate: A -> Bool) -> Stream<A> { return skipWhile_0 { predicate } }
+    public func skipWhile(predicate: A -> Bool) -> Stream<A> { return skipWhile { predicate } }
 
     public func take(n: UInt) -> Stream<A> {
-        return n > 0 ? takeWhile_0 { counter( n ) } : Streams.done()
+        return n > 0 ? takeWhile { counter( n ) } : Streams.done()
     }
     
     public func skip(n: UInt) -> Stream<A> {
-        return n > 0 ? skipWhile_0 { counter(n+1) } : self
+        return n > 0 ? skipWhile { counter(n+1) } : self
     }
 
     public func fold<B>(initial: B, _ f: () -> (B, A) -> B) -> Stream<B> {
@@ -112,13 +112,13 @@ public extension Stream {
         })
     }
     
-    private func takeWhile_0(predicate: () -> A -> Bool) -> Stream<A> {
+    public func takeWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
             during: { Streams.pure(.Next(Box($0))) },
             follow: { Streams.args(.Next(Box($0)), .Done()) })
     }
     
-    private func skipWhile_0(predicate: () -> A -> Bool) -> Stream<A> {
+    public func skipWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
             during: { _ in Streams.done() },
             follow: { e in Streams.pure(.Next(Box(e))) })

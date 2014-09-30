@@ -10,7 +10,7 @@ public class Stream<A> {
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 
     public func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
-        abort()
+        return undefined()
     }
     
     public func open(callerContext: ExecutionContext) -> Channel<A> {
@@ -21,7 +21,7 @@ public class Stream<A> {
 /// A subscription of an event stream.
 public class Channel<A> {
     
-    public func subscribe(f: Packet<A> -> ()) { abort() }
+    public func subscribe(f: Packet<A> -> ()) { return undefined() }
     
     public func close() {}
 
@@ -288,6 +288,10 @@ public class Dispatcher<A>: Channel<A> {
     public init(_ callerContext: ExecutionContext, _ calleeContext: ExecutionContext) {
         self.callerContext = callerContext
         self.calleeContext = calleeContext
+    }
+    
+    deinit {
+        // TODO
     }
 
     public func flush(e: A) {
