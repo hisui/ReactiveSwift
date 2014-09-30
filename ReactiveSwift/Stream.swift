@@ -34,21 +34,21 @@ public enum Packet<A> {
     case Fail(NSError)
     case Next(Box <A>)
 
-    public var value: A? { get {
+    public var value: A? {
         switch self {
         case .Next(let x): return +x
         default:
             return nil
         }
-    }}
+    }
     
-    public var error: NSError? { get {
+    public var error: NSError? {
         switch self {
         case .Fail(let x): return x
         default:
             return nil
         }
-    }}
+    }
     
     func map<B>(f: A -> B) -> Packet<B> {
         switch self {
