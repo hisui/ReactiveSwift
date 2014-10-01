@@ -3,6 +3,8 @@
 import Foundation
 
 public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
+
+    public init() {}
     
     override public func firstValue() -> Box<UpdateItem> { return Box([]) }
 

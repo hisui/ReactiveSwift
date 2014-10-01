@@ -6,13 +6,20 @@ public class Subject<A>: SubjectSource<A> {
 
     private var last: A
     
-    public init(_ initialValue: A) { self.last = initialValue }
+    public init(_ initialValue: A, _ name: String = __FUNCTION__) {
+        self.last = initialValue
+        super.init(name)
+    }
 
     public var value: A {
         set(a) {
             merge(Update(a, self as AnyObject))
         }
         get { return last }
+    }
+    
+    public func update(a: A, by o: AnyObject) {
+        merge(Update(a, o))
     }
     
     override public func merge(a: Update<A>) {
@@ -47,12 +54,19 @@ public class Update<A> {
 
 public class SubjectSource<A>: Source<Update<A>> {
     
+    public let name: String
+    
     typealias UpdateItem = A
     typealias UpdateType = Update<A>
     
     private var channels = [Dispatcher<Update<A>>] ()
     
+    public init(_ name: String = __FUNCTION__) {
+        self.name = name
+    }
+    
     deinit {
+        // println("SubjectSource(name='\(name)')#deinit :: firstValue={\(firstValue().raw)}")
         for chan in channels {
             chan.calleeContext.schedule(nil, 0) {
                 chan.emitIfOpen(.Done())
