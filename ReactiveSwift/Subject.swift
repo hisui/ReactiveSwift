@@ -10,18 +10,22 @@ public class Subject<A>: SubjectSource<A> {
 
     public var value: A {
         set(a) {
-            last = a
-            commit(a, self as AnyObject)
+            merge(Update(a, self as AnyObject))
         }
         get { return last }
     }
+    
+    override public func merge(a: Update<A>) {
+        last = a.detail
+        commit(a)
+    }
 
-    override func initialValue() -> A? { return value }
+    override public func firstValue() -> Box<A> { return Box(last) }
 
-    public func bimap<B>(f: A -> B, g: B -> A) -> Subject<B> {
+    public func bimap<B>(f: A -> B, _ g: B -> A, _ context: ExecutionContext) -> Subject<B> {
         let peer = Subject<B>(f(last))
-        setMappingBetween2(self, peer, f)
-        setMappingBetween2(peer, self, g)
+        setMappingBetween2(self, peer, f, context)
+        setMappingBetween2(peer, self, g, context)
         return peer
     }
 
@@ -32,7 +36,7 @@ public class Update<A> {
     public let sender: AnyObject?
     public let detail: A
     
-    public init(_ detail: A, _ sender: AnyObject? = nil) {
+    public init(_ detail: A, _ sender: AnyObject?) {
         self.sender = sender
         self.detail = detail
     }
@@ -49,7 +53,6 @@ public class SubjectSource<A>: Source<Update<A>> {
     private var channels = [Dispatcher<Update<A>>] ()
     
     deinit {
-        println("deinit!!!")
         for chan in channels {
             chan.calleeContext.schedule(nil, 0) {
                 chan.emitIfOpen(.Done())
@@ -57,13 +60,10 @@ public class SubjectSource<A>: Source<Update<A>> {
         }
     }
     
-    func apply(a: Update<A>) { return undefined() }
+    public func merge(a: Update<A>) { return undefined() }
 
-    func commit(a: A, _ sender: AnyObject? = nil) {
-        commit(Update(a, sender))
-    }
-    
     func commit(a: Update<A>) {
+        // TODO
         for chan in channels {
             chan.calleeContext.schedule(nil, 0) {
                 chan.emitIfOpen(.Next(Box(a)))
@@ -71,9 +71,12 @@ public class SubjectSource<A>: Source<Update<A>> {
         }
     }
     
-    func initialValue() -> UpdateItem? { return nil }
+    func firstValue() -> Box<UpdateItem> {
+        return undefined()
+    }
 
     override final func invoke(chan: Dispatcher<Update<A>>) {
+        chan.emitValue(Update(+firstValue(), self))
         chan.setCloseHandler { [weak self] in
             for i in 0 ..< (self?.channels.count ?? 0) { // TODO thread safe
                 if (self!.channels[i] === chan) {
@@ -83,9 +86,12 @@ public class SubjectSource<A>: Source<Update<A>> {
             }
         }
         channels.append(chan)
-        if let o = initialValue() {
-            chan.emitValue(Update(o, self))
-        }
+    }
+    
+    // TODO
+    override final func isolate(callerContext: ExecutionContext) -> ExecutionContext {
+        callerContext.ensureCurrentlyInCompatibleContext()
+        return callerContext.requires([.AllowSync])
     }
     
     public var subscribers: Int { return channels.count }
@@ -95,8 +101,16 @@ public class SubjectSource<A>: Source<Update<A>> {
 }
 
 // TODO fixes memory leak
-func setMappingBetween2<A, B>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B) {
-    a.skip(1).subscribe {
-        if let o = $0.value { if o.sender !== b { b.apply(o.map(f)) } }
+func setMappingBetween2<A, B>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B, context: ExecutionContext) {
+    a.skip(1).open(context.requires([.AllowSync])) { _ in
+        { if let o = $0.value { if o.sender !== b { b.merge(o.map(f)) } } }
     }
+}
+
+func setMappingBetween2<A, B, X>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B) -> Stream<X> {
+    return a.skip(1)
+    .foreach { o in
+        if o.sender !== b { b.merge(o.map(f)) }
+    }
+    .nullify()
 }

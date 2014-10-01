@@ -3,10 +3,14 @@
 import Foundation
 
 public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
+    
+    override public func firstValue() -> Box<UpdateItem> { return Box([]) }
 
     public subscript(i: Int) -> E? { return nil }
     
-    public func map<F>(f: E -> F) -> ArrayView<F> { return ArrayView<F>() }
+    public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
+        return Streams.pure(ArrayView<F>())
+    }
 
     // TODO Swift compiler does'nt support overriding getter/setter yet
     // public var count: UInt { return undefined() }
@@ -20,26 +24,49 @@ public class ArrayCollection<E>: ArrayView<E> {
 
     private var raw: [E]
     
-    init(_ a: [E] = []) { raw = a }
+    public init(_ a: [E] = []) { raw = a }
     
-    override func initialValue() -> UpdateItem? { return [ArrayDiff<E>(0, 0, raw)] }
+    override public func firstValue() -> Box<UpdateItem> {
+        return Box([ArrayDiff<E>(0, 0, raw)])
+    }
 
-    public override subscript(i: Int) -> E? {
+    override public subscript(i: Int) -> E? {
         get { return ((0 ..< Int(count)) ~= i) ? raw[i]: nil }
         set(e) {
             apply([ArrayDiff(UInt(i), 1, [e!])], nil)
         }
     }
 
-    public func bimap<F>(f: E -> F, _ g: F -> E) -> ArrayCollection<F> {
+    public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> ArrayCollection<F> {
         let peer = ArrayCollection<F>(raw.map(f))
-        setMappingBetween2(self, peer) { $0.map { $0.map(f) } }
-        setMappingBetween2(peer, self) { $0.map { $0.map(g) } }
+        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
+        setMappingBetween2(peer, self, { $0.map { $0.map(g) } }, context)
         return peer
     }
 
-    public override func map<F>(f: E -> F) -> ArrayView<F> {
-        return bimap(f, { _ in undefined() })
+    public func map<F>(f: E -> F,  _ context: ExecutionContext) -> ArrayView<F> {
+        let peer = ArrayCollection<F>(raw.map(f))
+        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
+        return peer
+    }
+    
+    public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<ArrayCollection<F>> {
+        return Streams.exec(ArrayCollection<F>(raw.map(f))).flatMap { peer in
+            Streams.mix([
+                Streams.pure(peer),
+                setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
+                setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
+            ])
+        }
+    }
+
+    override public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
+        return Streams.exec(ArrayCollection<F>(raw.map(f))).flatMap { peer in
+            Streams.mix([
+                Streams.pure(peer),
+                setMappingBetween2(self, peer, { $0.map { $0.map(f) } })
+            ])
+        }
     }
 
     // TODO less costly implementation
@@ -51,47 +78,47 @@ public class ArrayCollection<E>: ArrayView<E> {
         return a
     }
 
-    public override func apply(update: UpdateType) {
+    public override func merge(update: UpdateType) {
         for diff in update.detail {
             assert(diff.offset + diff.delete <= count)
             raw.replaceRange(
                 Int (diff.offset) ..<
                 Int (diff.offset + diff.delete), with: diff.insert)
         }
-        super.commit(update)
+        commit(update)
     }
 
     public func apply(diff: ArrayDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
     
     public func apply(a: [ArrayDiff<E>], _ sender: AnyObject?) {
-        apply(Update(a, sender))
+        merge(Update(a, sender ?? self))
     }
 
-    public func addHead(e: E, sender: AnyObject?=nil) {
+    public func addHead(e: E, sender: AnyObject? = nil) {
         apply(ArrayDiff(0, 0, [e]), sender)
     }
     
-    public func addLast(e: E, sender: AnyObject?=nil) {
+    public func addLast(e: E, sender: AnyObject? = nil) {
         apply(ArrayDiff(count, 0, [e]), sender)
     }
     
-    public func removeAt(i: Int, sender: AnyObject?=nil) {
+    public func removeAt(i: Int, sender: AnyObject? = nil) {
         apply(ArrayDiff(UInt(i), 1), sender)
     }
     
-    public func insertAt(i: Int, _ e: E, sender: AnyObject?=nil) {
+    public func insertAt(i: Int, _ e: E, sender: AnyObject? = nil) {
         apply(ArrayDiff(UInt(i), 0, [e]), sender)
     }
     
-    public func assign(a: [E], sender: AnyObject?=nil) {
+    public func assign(a: [E], sender: AnyObject? = nil) {
         apply(ArrayDiff(0, count, a), sender)
     }
     
-    public func assign(f: [E] -> [E], sender: AnyObject?=nil) {
+    public func assign(f: [E] -> [E], sender: AnyObject? = nil) {
         apply(ArrayDiff(0, count, f(raw)), sender)
     }
     
-    public func move(i: Int, to j: Int, sender: AnyObject?=nil) {
+    public func move(i: Int, to j: Int, sender: AnyObject? = nil) {
         if let a = self[i] {
             apply([
                 ArrayDiff(UInt(i), 1),
@@ -104,7 +131,7 @@ public class ArrayCollection<E>: ArrayView<E> {
     
     public var array: [E]  { return raw }
     
-    public override func size() -> UInt { return count }
+    override public func size() -> UInt { return count }
 
 }
 
@@ -120,8 +147,6 @@ public class ArrayDiff<E> {
         self.insert = insert
     }
     
-    public func map<B>(f: E -> B) -> ArrayDiff<B> {
-        return ArrayDiff<B>(offset, delete, insert.map(f))
-    }
-    
+    public func map<B>(f: E -> B) -> ArrayDiff<B> { return ArrayDiff<B>(offset, delete, insert.map(f)) }
+
 }

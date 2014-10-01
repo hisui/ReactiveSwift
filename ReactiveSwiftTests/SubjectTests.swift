@@ -76,4 +76,37 @@ class SubjectTests: XCTestCase {
         XCTAssertTrue(received2!.value == nil)
     }
     
+    func testBiMap() {
+        
+        let exec = FakeExecutor()
+        let a = Subject(1)
+        let b = a.bimap({ $0 * 2 }, { $0 / 2 }, exec.newContext())
+        
+        XCTAssertEqual(1, a.value)
+        XCTAssertEqual(2, b.value)
+        
+        a.value = 2
+        
+        XCTAssertEqual(2, a.value)
+        XCTAssertEqual(2, b.value)
+        
+        exec.consumeAll()
+        
+        XCTAssertEqual(1, a.subscribers)
+        XCTAssertEqual(1, b.subscribers)
+        XCTAssertEqual(2, a.value)
+        XCTAssertEqual(4, b.value)
+        
+        b.value = 6
+        
+        XCTAssertEqual(2, a.value)
+        XCTAssertEqual(6, b.value)
+        
+        exec.consumeAll()
+        
+        XCTAssertEqual(3, a.value)
+        XCTAssertEqual(6, b.value)
+
+    }
+    
 }

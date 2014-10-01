@@ -1,36 +1,74 @@
-//
-//  ArrayViewTests.swift
-//  ReactiveSwift
-//
-//  Created by shun on 10/1/14.
-//  Copyright (c) 2014 segfault.jp. All rights reserved.
-//
+// Copyright (c) 2014 segfault.jp. All rights reserved.
 
-import UIKit
 import XCTest
+import ReactiveSwift
 
 class ArrayViewTests: XCTestCase {
+    
+    func testGenralUse() {
+        
+        let exec = FakeExecutor()
+        let subj = ArrayCollection([1, 2, 3])
+        
+        var received: Packet<[ArrayDiff<Int>]> = .Done()
+        let chan = subj.unwrap.open(exec.newContext()) { _ in { received = $0 }}
+        
+        // TODO It should be 0..
+        XCTAssertEqual(1, subj.subscribers)
+        XCTAssertEqual([1, 2, 3], subj.array)
 
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        exec.consumeAll()
+        
+        XCTAssertEqual(1, subj.subscribers)
+        XCTAssertEqual([1, 2, 3], subj.array)
+        
+        XCTAssertTrue(received.value![0].insert == [1, 2, 3])
+        
+        subj.addLast(4)
+        
+        XCTAssertEqual([1, 2, 3, 4], subj.array)
+        XCTAssertTrue(received.value![0].insert == [1, 2, 3])
+        
+        exec.consumeAll()
+        
+        XCTAssertEqual([1, 2, 3, 4], subj.array)
+        XCTAssertTrue(received.value![0].insert == [4])
+        
     }
     
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
+    func testBiMap() {
+        
+        let exec = FakeExecutor()
+        let a = ArrayCollection([1, 2, 3])
+        let b = a.bimap({ $0 * 2 }, { $0 / 2 }, exec.newContext())
+        
+        XCTAssertEqual([1, 2, 3], a.array)
+        XCTAssertEqual([2, 4, 6], b.array)
+        
+        a.addHead(0)
+        
+        XCTAssertEqual([0, 1, 2, 3], a.array)
+        XCTAssertEqual([   2, 4, 6], b.array)
+        
+        exec.consumeAll()
+        
+        XCTAssertEqual(1, a.subscribers)
+        XCTAssertEqual(1, b.subscribers)
+        XCTAssertEqual([0, 1, 2, 3], a.array)
+        XCTAssertEqual([0, 2, 4, 6], b.array)
+        
+        b.addLast(8)
+        
+        XCTAssertEqual([0, 1, 2, 3   ], a.array)
+        XCTAssertEqual([0, 2, 4, 6, 8], b.array)
+        
+        exec.consumeAll()
+        
+        XCTAssertEqual(1, a.subscribers)
+        XCTAssertEqual(1, b.subscribers)
+        XCTAssertEqual([0, 1, 2, 3, 4], a.array)
+        XCTAssertEqual([0, 2, 4, 6, 8], b.array)
 
-    func testExample() {
-        // This is an example of a functional test case.
-        XCTAssert(true, "Pass")
     }
-
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measureBlock() {
-            // Put the code you want to measure the time of here.
-        }
-    }
-
+    
 }

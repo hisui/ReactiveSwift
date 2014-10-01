@@ -22,6 +22,7 @@
 		24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410ED319C2AC4900AD1A0F /* Subject.swift */; };
 		24410EE219C312F400AD1A0F /* Monad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EE119C312F400AD1A0F /* Monad.swift */; };
 		24F1922A19C723DB00AA85E3 /* SubjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1922919C723DB00AA85E3 /* SubjectTests.swift */; };
+		24FC5E2519DBE503000D1DD1 /* ArrayViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24FC5E2419DBE503000D1DD1 /* ArrayViewTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +59,7 @@
 		24A0BBFD19D8023F0043C6A7 /* Podfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Podfile; sourceTree = "<group>"; };
 		24A0BBFE19D8023F0043C6A7 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		24F1922919C723DB00AA85E3 /* SubjectTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubjectTests.swift; sourceTree = "<group>"; };
+		24FC5E2419DBE503000D1DD1 /* ArrayViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArrayViewTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,6 +142,7 @@
 				24410EC919C2852100AD1A0F /* StreamTests.swift */,
 				24410ED119C29DA400AD1A0F /* ArrayDequeTests.swift */,
 				24F1922919C723DB00AA85E3 /* SubjectTests.swift */,
+				24FC5E2419DBE503000D1DD1 /* ArrayViewTests.swift */,
 			);
 			path = ReactiveSwiftTests;
 			sourceTree = "<group>";
@@ -296,6 +299,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				24FC5E2519DBE503000D1DD1 /* ArrayViewTests.swift in Sources */,
 				24410ED219C29DA400AD1A0F /* ArrayDequeTests.swift in Sources */,
 				24410ECA19C2852100AD1A0F /* StreamTests.swift in Sources */,
 				24F1922A19C723DB00AA85E3 /* SubjectTests.swift in Sources */,
