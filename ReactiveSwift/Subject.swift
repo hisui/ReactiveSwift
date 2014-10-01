@@ -100,13 +100,11 @@ public class SubjectSource<A>: Source<Update<A>> {
 
 }
 
-// TODO fixes memory leak
 func setMappingBetween2<A, B>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B, context: ExecutionContext) {
-    a.skip(1).open(context.requires([.AllowSync])) { _ in
-        { if let o = $0.value { if o.sender !== b { b.merge(o.map(f)) } } }
-    }
+    (setMappingBetween2(a, b, f) as Stream<()>).open(context)
 }
 
+// TODO fixes memory leak
 func setMappingBetween2<A, B, X>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B) -> Stream<X> {
     return a.skip(1)
     .foreach { o in
