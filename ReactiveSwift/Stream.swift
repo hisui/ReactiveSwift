@@ -434,6 +434,7 @@ private final class Merge<A, B>: Source<B> {
         
         let queue = ArrayDeque<Packet<A>>()
         let block = self.block()
+        let count = self.count
         next = { e in
             if let x = e.value {
                 block(x).open(chan.calleeContext) { o in
@@ -467,7 +468,7 @@ private final class Merge<A, B>: Source<B> {
                 if let x = e.error {
                     chan.emitIfOpen(.Fail(x))
                 }
-                else if alive.count != self.count {
+                else if alive.count != count {
                     next(e)
                 }
                 else {
