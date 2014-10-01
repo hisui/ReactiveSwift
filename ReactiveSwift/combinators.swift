@@ -123,6 +123,8 @@ public extension Stream {
             during: { _ in Streams.done() },
             follow: { e in Streams.pure(.Next(Box(e))) })
     }
+    
+    public func nullify<B>() -> Stream<B> { return filter { _ in false }.map { _ in undefined() } }
 
 }
 
