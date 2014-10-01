@@ -207,6 +207,10 @@ public class Streams {
         return source(property) { $0.flush(f()) }
     }
     
+    public class func exec<A>(f: @autoclosure () -> A) -> Stream<A> {
+        return source([]) { $0.flush(f()) }
+    }
+    
     public class func range<A: ForwardIndexType>(range: Range<A>) -> Stream<A> {
         return source { chan in
             for e in range {
@@ -384,7 +388,7 @@ class Source<A>: Stream<A> {
         return chan
     }
     
-    func invoke(chan: Dispatcher<A>) { abort() }
+    func invoke(chan: Dispatcher<A>) { return undefined() }
     
     func isolate(callerContext: ExecutionContext) -> ExecutionContext {
         return callerContext.requires([])
