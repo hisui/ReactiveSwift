@@ -12,6 +12,10 @@ public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
         return Streams.pure(ArrayView<F>())
     }
 
+    public func map<F>(f: E -> F, _ context: ExecutionContext) -> ArrayView<F> {
+        return ArrayView<F>()
+    }
+
     // TODO Swift compiler does'nt support overriding getter/setter yet
     // public var count: UInt { return undefined() }
     // public var array: [E]  { return undefined() }
@@ -37,6 +41,14 @@ public class ArrayCollection<E>: ArrayView<E> {
         }
     }
 
+    override public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
+        return bimap(f, { _ in undefined() }).map { $0 as ArrayView<F> }
+    }
+    
+    override public func map<F>(f: E -> F,  _ context: ExecutionContext) -> ArrayView<F> {
+        return bimap(f, { _ in undefined() }, context)
+    }
+
     public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> ArrayCollection<F> {
         let peer = ArrayCollection<F>(raw.map(f))
         setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
@@ -44,27 +56,12 @@ public class ArrayCollection<E>: ArrayView<E> {
         return peer
     }
 
-    public func map<F>(f: E -> F,  _ context: ExecutionContext) -> ArrayView<F> {
-        let peer = ArrayCollection<F>(raw.map(f))
-        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
-        return peer
-    }
-    
     public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<ArrayCollection<F>> {
         return Streams.exec(ArrayCollection<F>(raw.map(f))).flatMap { peer in
             Streams.mix([
                 Streams.pure(peer),
                 setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
                 setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
-            ])
-        }
-    }
-
-    override public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
-        return Streams.exec(ArrayCollection<F>(raw.map(f))).flatMap { peer in
-            Streams.mix([
-                Streams.pure(peer),
-                setMappingBetween2(self, peer, { $0.map { $0.map(f) } })
             ])
         }
     }
