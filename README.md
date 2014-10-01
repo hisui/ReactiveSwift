@@ -63,16 +63,16 @@ c.subscribe { (e: Packet<String>) in
 ```swift
 // The definition of a typical observer class
 class MyButtonListener: ButtonListener {
-  let subject = Subject<ButtonEvent>()
+  let subject = Subject<ButtonEvent?>(nil)
   func onButtonClick(e: ButtonEvent) {
-    subject.currentValue = e
+    subject.value = e
   }
 }
 ```
 
 ```swift
-let observer: MyButtonObserver = /* ... */
-observer.subject.subscribe { (e: Packet<ButtonEvent>) in
+let observer: MyButtonListener = /* ... */
+observer.subject.unwrap.subscribe { (e: Packet<ButtonEvent?>) in
   /* ... */
 }
 ```
