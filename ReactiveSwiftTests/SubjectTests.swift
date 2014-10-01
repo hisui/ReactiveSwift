@@ -32,7 +32,7 @@ class SubjectTests: XCTestCase {
         XCTAssertEqual(2, subj.subscribers)
         XCTAssertTrue(received2.value == 1)
         
-        subj.currentValue = 2
+        subj.value = 2
         XCTAssertTrue(received1.value == 1)
         XCTAssertTrue(received2.value == 1)
         

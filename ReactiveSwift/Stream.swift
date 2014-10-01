@@ -158,7 +158,7 @@ public extension Stream {
                             map[k] = chan
                             outer.emitIfOpen(.Next(Box(chan!)))
                         }
-                        chan!.emit(.Next(Box((k, x.raw))))
+                        chan!.emitValue((k, x.raw))
                     default:
                         for o in map.values { o.emit(e.map { _ in undefined() } ) }
                     }
@@ -169,7 +169,7 @@ public extension Stream {
 
 }
 
-private func undefined<X>() -> X { abort() }
+func undefined<X>() -> X { abort() }
 
 public class Streams {
 
@@ -197,7 +197,7 @@ public class Streams {
         return source([.AllowSync]) { chan in
             var i = 0
             while i < a.count && !chan.isClosed {
-                chan.emit(.Next(Box( a[i++] )))
+                chan.emitValue( a[i++] )
             }
             chan.emitIfOpen(.Done())
         }
@@ -210,7 +210,7 @@ public class Streams {
     public class func range<A: ForwardIndexType>(range: Range<A>) -> Stream<A> {
         return source { chan in
             for e in range {
-                if !chan.isClosed { chan.emit(.Next(Box(e))) }
+                if !chan.isClosed { chan.emitValue(e) }
             }
             chan.emitIfOpen(.Done())
         }
@@ -289,17 +289,16 @@ public class Dispatcher<A>: Channel<A> {
         self.callerContext = callerContext
         self.calleeContext = calleeContext
     }
-    
-    deinit {
-        // TODO
-    }
 
     public func flush(e: A) {
-        assert(calleeOpen, "This channel was closed.")
-        emitIfOpen(.Next(Box(e)))
+        emitValue(e)
         emitIfOpen(.Done())
     }
     
+    public func emitValue(e: A) {
+        emit(.Next(Box(e)))
+    }
+
     // TODO emitAndWait: Cont<()>
     public func emit(e: Packet<A>) {
         assert(calleeOpen, "This channel was closed.")

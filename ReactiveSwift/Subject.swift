@@ -2,13 +2,12 @@
 
 import Foundation
 
-public class Subject<A>: Source<A> {
+public class Subject<A>: SubjectSource<A> {
 
-    private var channels = [Dispatcher<A>] ()
-    private var value: A
+    private var holder: A
     
     public init(_ initialValue: A) {
-        self.value = initialValue
+        self.holder = initialValue
     }
     
     deinit {
@@ -19,20 +18,42 @@ public class Subject<A>: Source<A> {
         }
     }
 
-    public var currentValue: A {
+    public var value: A {
         set(a) {
-            value = a
-            for chan in channels {
-                chan.calleeContext.schedule(nil, 0) {
-                    chan.emitIfOpen(.Next(Box(a)))
-                }
-            }
+            holder = (a)
+            emitValue(a)
         }
-        get { return value }
+        get { return holder }
     }
     
     override func invoke(chan: Dispatcher<A>) {
-        chan.emit(.Next(Box(value)))
+        super.invoke(chan)
+        super.emitValue(value)
+    }
+
+}
+
+public class SubjectSource<A>: Source<A> {
+    
+    private var channels = [Dispatcher<A>] ()
+    
+    deinit {
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(.Done())
+            }
+        }
+    }
+    
+    func emitValue(a: A) {
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(.Next(Box(a)))
+            }
+        }
+    }
+
+    override func invoke(chan: Dispatcher<A>) {
         chan.setCloseHandler { [weak self] in
             for i in 0 ..< (self?.channels.count ?? 0) { // TODO thread safe
                 if (self!.channels[i] === chan) {
@@ -45,5 +66,4 @@ public class Subject<A>: Source<A> {
     }
     
     public var subscribers: Int { return channels.count }
-
 }

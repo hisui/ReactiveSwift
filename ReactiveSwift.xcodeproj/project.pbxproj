@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		24410EA619C284BC00AD1A0F /* ReactiveSwift.h in Headers */ = {isa = PBXBuildFile; fileRef = 24410EA519C284BC00AD1A0F /* ReactiveSwift.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		241C887A19DB83E70087E462 /* ArrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241C887919DB83E70087E462 /* ArrayView.swift */; };
 		24410EC119C284F800AD1A0F /* Either.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EB919C284F800AD1A0F /* Either.swift */; };
 		24410EC219C284F800AD1A0F /* Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EBA19C284F800AD1A0F /* Box.swift */; };
 		24410EC319C284F800AD1A0F /* ArrayDeque.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EBB19C284F800AD1A0F /* ArrayDeque.swift */; };
@@ -21,10 +21,6 @@
 		24410ED219C29DA400AD1A0F /* ArrayDequeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410ED119C29DA400AD1A0F /* ArrayDequeTests.swift */; };
 		24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410ED319C2AC4900AD1A0F /* Subject.swift */; };
 		24410EE219C312F400AD1A0F /* Monad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EE119C312F400AD1A0F /* Monad.swift */; };
-		24A0BBFB19D802300043C6A7 /* ReactiveSwift.podspec in Resources */ = {isa = PBXBuildFile; fileRef = 24A0BBFA19D802300043C6A7 /* ReactiveSwift.podspec */; };
-		24A0BBFF19D8023F0043C6A7 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 24A0BBFC19D8023F0043C6A7 /* LICENSE.txt */; };
-		24A0BC0019D8023F0043C6A7 /* Podfile in Resources */ = {isa = PBXBuildFile; fileRef = 24A0BBFD19D8023F0043C6A7 /* Podfile */; };
-		24A0BC0119D8023F0043C6A7 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 24A0BBFE19D8023F0043C6A7 /* README.md */; };
 		24F1922A19C723DB00AA85E3 /* SubjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1922919C723DB00AA85E3 /* SubjectTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -39,9 +35,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		241C886819DAEBDC0087E462 /* ReactiveSwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ReactiveSwift.h; sourceTree = "<group>"; };
+		241C887919DB83E70087E462 /* ArrayView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArrayView.swift; sourceTree = "<group>"; };
 		24410EA019C284BC00AD1A0F /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		24410EA419C284BC00AD1A0F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		24410EA519C284BC00AD1A0F /* ReactiveSwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ReactiveSwift.h; sourceTree = "<group>"; };
 		24410EAB19C284BC00AD1A0F /* ReactiveSwiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReactiveSwiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		24410EAE19C284BC00AD1A0F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		24410EB919C284F800AD1A0F /* Either.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Either.swift; sourceTree = "<group>"; };
@@ -82,6 +79,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		241C887B19DB83EE0087E462 /* Subject */ = {
+			isa = PBXGroup;
+			children = (
+				24410ED319C2AC4900AD1A0F /* Subject.swift */,
+				241C887919DB83E70087E462 /* ArrayView.swift */,
+			);
+			name = Subject;
+			sourceTree = "<group>";
+		};
 		24410E9619C284BC00AD1A0F = {
 			isa = PBXGroup;
 			children = (
@@ -107,12 +113,11 @@
 		24410EA219C284BC00AD1A0F /* ReactiveSwift */ = {
 			isa = PBXGroup;
 			children = (
+				241C887B19DB83EE0087E462 /* Subject */,
 				24410ECC19C2853600AD1A0F /* Collection */,
 				24410ECB19C2852B00AD1A0F /* Scheduler */,
-				24410EA519C284BC00AD1A0F /* ReactiveSwift.h */,
 				24410EE119C312F400AD1A0F /* Monad.swift */,
 				24410EBF19C284F800AD1A0F /* Stream.swift */,
-				24410ED319C2AC4900AD1A0F /* Subject.swift */,
 				24410EC019C284F800AD1A0F /* combinators.swift */,
 				24410EA319C284BC00AD1A0F /* Supporting Files */,
 			);
@@ -123,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				24410EA419C284BC00AD1A0F /* Info.plist */,
+				241C886819DAEBDC0087E462 /* ReactiveSwift.h */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -173,7 +179,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				24410EA619C284BC00AD1A0F /* ReactiveSwift.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,9 +261,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				24A0BC0019D8023F0043C6A7 /* Podfile in Resources */,
-				24A0BBFF19D8023F0043C6A7 /* LICENSE.txt in Resources */,
-				24A0BBFB19D802300043C6A7 /* ReactiveSwift.podspec in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,6 +279,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				24410EC619C284F800AD1A0F /* fake.swift in Sources */,
+				241C887A19DB83E70087E462 /* ArrayView.swift in Sources */,
 				24410EC119C284F800AD1A0F /* Either.swift in Sources */,
 				24410EC419C284F800AD1A0F /* Scheduler.swift in Sources */,
 				24410EC519C284F800AD1A0F /* gcd.swift in Sources */,
@@ -285,7 +288,6 @@
 				24410EC219C284F800AD1A0F /* Box.swift in Sources */,
 				24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */,
 				24410EE219C312F400AD1A0F /* Monad.swift in Sources */,
-				24A0BC0119D8023F0043C6A7 /* README.md in Sources */,
 				24410EC719C284F800AD1A0F /* Stream.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -399,6 +401,11 @@
 		24410EB419C284BC00AD1A0F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					x86_64,
+					i386,
+					"$(ARCHS_STANDARD)",
+				);
 				CLANG_ENABLE_MODULES = YES;
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
@@ -409,17 +416,23 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				VALID_ARCHS = "arm64 armv7 armv7s";
+				VALID_ARCHS = "arm64 armv7 armv7s iphonesimulator";
 			};
 			name = Debug;
 		};
 		24410EB519C284BC00AD1A0F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					x86_64,
+					i386,
+					"$(ARCHS_STANDARD)",
+				);
 				CLANG_ENABLE_MODULES = YES;
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
@@ -433,7 +446,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
-				VALID_ARCHS = "arm64 armv7 armv7s";
+				VALID_ARCHS = "arm64 armv7 armv7s iphonesimulator";
 			};
 			name = Release;
 		};
