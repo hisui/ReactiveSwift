@@ -32,7 +32,7 @@ public class GCDExecutionContext: ExecutionContext {
     public func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ()) {
         let queue = config.queue
         if (delay == 0) {
-            if (callerContext as? GCDExecutionContext)?.config.queue == queue {
+            if config.synch && (callerContext as? GCDExecutionContext)?.config.queue == queue {
                 task()
                 return
             }
