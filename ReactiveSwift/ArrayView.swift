@@ -2,9 +2,7 @@
 
 import Foundation
 
-public class ArrayView<E>: SubjectSource<Update<AnyObject?, [ArrayDiff<E>]>> {
-    
-    typealias UpdateType = Update<AnyObject?, [ArrayDiff<E>]>
+public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
 
     public subscript(i: Int) -> E? { return nil }
     
@@ -24,11 +22,8 @@ public class ArrayCollection<E>: ArrayView<E> {
     
     init(_ a: [E] = []) { raw = a }
     
-    override func invoke(chan: Dispatcher<UpdateType>) {
-        super.invoke(chan)
-        super.emitValue(UpdateType(self, [ArrayDiff<E>(0, 0, raw)]))
-    }
-    
+    override func initialValue() -> UpdateItem? { return [ArrayDiff<E>(0, 0, raw)] }
+
     public override subscript(i: Int) -> E? {
         get { return ((0 ..< Int(count)) ~= i) ? raw[i]: nil }
         set(e) {
@@ -38,11 +33,11 @@ public class ArrayCollection<E>: ArrayView<E> {
 
     public func bimap<F>(f: E -> F, _ g: F -> E) -> ArrayCollection<F> {
         let peer = ArrayCollection<F>(raw.map(f))
-        setMappingBetween(self, peer, f)
-        setMappingBetween(peer, self, g)
+        setMappingBetween2(self, peer) { $0.map { $0.map(f) } }
+        setMappingBetween2(peer, self) { $0.map { $0.map(g) } }
         return peer
     }
-    
+
     public override func map<F>(f: E -> F) -> ArrayView<F> {
         return bimap(f, { _ in undefined() })
     }
@@ -56,20 +51,22 @@ public class ArrayCollection<E>: ArrayView<E> {
         return a
     }
 
-    public func apply(update: UpdateType) { apply(update.detail, update.sender) }
-    
-    public func apply(diff: ArrayDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
-    
-    public func apply(a: [ArrayDiff<E>], _ sender: AnyObject?) {
-        for diff in a {
+    public override func apply(update: UpdateType) {
+        for diff in update.detail {
             assert(diff.offset + diff.delete <= count)
             raw.replaceRange(
                 Int (diff.offset) ..<
-                    Int (diff.offset + diff.delete), with: diff.insert)
+                Int (diff.offset + diff.delete), with: diff.insert)
         }
-        super.emitValue(Update(sender, a))
+        super.commit(update)
     }
+
+    public func apply(diff: ArrayDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
     
+    public func apply(a: [ArrayDiff<E>], _ sender: AnyObject?) {
+        apply(Update(a, sender))
+    }
+
     public func addHead(e: E, sender: AnyObject?=nil) {
         apply(ArrayDiff(0, 0, [e]), sender)
     }
@@ -128,28 +125,3 @@ public class ArrayDiff<E> {
     }
     
 }
-
-public class Update<Sender, Detail> {
-    
-    public let sender: Sender
-    public let detail: Detail
-    
-    public init(_ sender: Sender, _ detail: Detail) {
-        self.sender = sender
-        self.detail = detail
-    }
-    
-    public func map<B>(f: Detail -> B) -> Update<Sender, B> {
-        return Update<Sender, B>(sender, f(detail))
-    }
-}
-
-// TODO fixes memory leak
-private func setMappingBetween<A, B>(a: ArrayCollection<A>, b: ArrayCollection<B>, f: A -> B) {
-    a.skip(1).subscribe { e in
-        if let o = e.value {
-            if o.sender !== b { b.apply(o.detail.map { $0.map(f) }, a) }
-        }
-    }
-}
-
