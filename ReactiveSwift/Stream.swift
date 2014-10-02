@@ -4,17 +4,15 @@ import Foundation
 
 /// A composable object which represents an event stream where multiple events are flowing.
 public class Stream<A> {
-    
-    typealias Cont = Channel<A> -> (Packet<A> -> ())?
 
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 
-    public func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
+    public func open(callerContext: ExecutionContext, _ cont: Channel<A> -> ()) -> Channel<A> {
         return undefined()
     }
     
     public func open(callerContext: ExecutionContext) -> Channel<A> {
-        return open(callerContext) { _ in nil }
+        return open(callerContext) { _ in }
     }
 }
 
@@ -26,6 +24,7 @@ public class Channel<A> {
     public func close() {}
 
 }
+
 
 /// An event.
 public enum Packet<A> {
@@ -101,7 +100,9 @@ public extension Stream {
             }
             self.open(chan.calleeContext) {
                 base = $0
-                return { chan.emitIfOpen(.Next(Box($0))) }
+                base!.subscribe {
+                    chan.emitIfOpen(.Next(Box($0)))
+                }
             }
         }
     }
@@ -116,7 +117,7 @@ public extension Stream {
             }
             self.open(chan.calleeContext) {
                 base = $0
-                return { chan.emitIfOpen($0) }
+                base!.subscribe { chan.emitIfOpen($0) }
             }
         }
     }
@@ -149,8 +150,9 @@ public extension Stream {
                 base = nil
                 for e in map.values { e.close() }
             }
-            self.open(outer.calleeContext) { (base = $0)
-                return { e in
+            self.open(outer.calleeContext) {
+                base = $0
+                base!.subscribe { e in
                     switch e {
                     case .Next(let x):
                         let k = f(+x)
@@ -233,7 +235,9 @@ public class Streams {
             }
             s.open(chan.calleeContext) {
                 base = $0
-                return { chan.emitIfOpen($0 >>| { $0 }) }
+                base!.subscribe {
+                     chan.emitIfOpen($0 >>| { $0 })
+                }
             }
         }
     }
@@ -266,7 +270,7 @@ public class Streams {
             }
             f(chan).open(chan.calleeContext) {
                 base = $0
-                return { chan.emitIfOpen($0) }
+                base!.subscribe { chan.emitIfOpen($0) }
             }
         }
     }
@@ -379,14 +383,10 @@ public class Dispatcher<A>: Channel<A> {
 
 class Source<A>: Stream<A> {
 
-    override func open(callerContext: ExecutionContext, _ cont: Cont) -> Channel<A> {
-        let chan = Dispatcher<A>(callerContext, isolate(callerContext))
-        if let f = cont(chan) {
-            chan.subscribe(f)
-        }
-        chan.calleeContext.schedule(callerContext, 0) {
-            self.invoke(chan)
-        }
+    override func open(callerContext: ExecutionContext, _ cont: Channel<A> -> ()) -> Channel<A> {
+        let (chan) = Dispatcher<A>(callerContext, isolate(callerContext))
+        cont(chan)
+        chan.calleeContext.schedule(callerContext, 0) { self.invoke(chan) }
         return chan
     }
     
@@ -443,16 +443,16 @@ private final class Merge<A, B>: Source<B> {
         let count = self.count
         next = { e in
             if let x = e.value {
-                block(x).open(chan.calleeContext) { o in
-                    alive.append(o)
-                    return { e in
+                block(x).open(chan.calleeContext) { inner in
+                    alive.append(inner)
+                    inner.subscribe { e in
                         switch e {
                         case let .Next(_): chan.emitIfOpen(e)
                         case let .Fail(x): chan.emitIfOpen(.Fail(x))
                             fallthrough
                         default:
                             for i in 0 ..< alive.count {
-                                if (alive[i] === o) {
+                                if (alive[i] === inner) {
                                     alive.removeAtIndex(i)
                                     break
                                 }
@@ -469,8 +469,9 @@ private final class Merge<A, B>: Source<B> {
                 chan.emitIfOpen(.Done())
             }
         }
-        outer.open(chan.calleeContext) { ( base = $0 )
-            return { e in
+        outer.open(chan.calleeContext) {
+            base = $0
+            base!.subscribe { e in
                 if let x = e.error {
                     chan.emitIfOpen(.Fail(x))
                 }
