@@ -23,6 +23,8 @@ public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
     // public var array: [E]  { return undefined() }
     
     public func size() -> UInt { return 0 }
+    
+    public func compose() -> Stream<[E]> { return unwrap.map { _ in undefined() } }
 
 }
 
@@ -34,6 +36,16 @@ public class ArrayCollection<E>: ArrayView<E> {
     
     override public func firstValue() -> Box<UpdateItem> {
         return Box([ArrayDiff<E>(0, 0, raw)])
+    }
+    
+    override public func merge(update: UpdateType) {
+        for diff in update.detail {
+            assert(diff.offset + diff.delete <= count)
+            raw.replaceRange(
+                Int (diff.offset) ..<
+                    Int (diff.offset + diff.delete), with: diff.insert)
+        }
+        commit(update)
     }
 
     override public subscript(i: Int) -> E? {
@@ -75,16 +87,6 @@ public class ArrayCollection<E>: ArrayView<E> {
             if let o = $0.value { a.assign(self.raw.filter(f)) }
         }
         return a
-    }
-
-    public override func merge(update: UpdateType) {
-        for diff in update.detail {
-            assert(diff.offset + diff.delete <= count)
-            raw.replaceRange(
-                Int (diff.offset) ..<
-                Int (diff.offset + diff.delete), with: diff.insert)
-        }
-        commit(update)
     }
 
     public func apply(diff: ArrayDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
@@ -131,6 +133,10 @@ public class ArrayCollection<E>: ArrayView<E> {
     public var array: [E]  { return raw }
     
     override public func size() -> UInt { return count }
+    
+    override public func compose() -> Stream<[E]> {
+        return unwrap.map { [unowned self] _ in self.raw }
+    }
 
 }
 

@@ -11,7 +11,7 @@ class SubjectTests: XCTestCase {
         let subj = Subject(1)
         
         var received1: Packet<Int> = .Done()
-        let chan1 = subj.unwrap.open(exec.newContext()) { _ in { received1 = $0 }}
+        let chan1 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received1 = $0 }}
         
         XCTAssertEqual(1, subj.subscribers)
         XCTAssertTrue(received1.value == nil)
@@ -21,7 +21,7 @@ class SubjectTests: XCTestCase {
         XCTAssertTrue(received1.value == 1)
         
         var received2: Packet<Int> = .Done()
-        let chan2 = subj.unwrap.open(exec.newContext()) { _ in { received2 = $0 }}
+        let chan2 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received2 = $0 }}
         
         XCTAssertEqual(2, subj.subscribers)
         XCTAssertTrue(received2.value == nil)
@@ -56,8 +56,8 @@ class SubjectTests: XCTestCase {
         var received1: Packet<Int>? = nil
         var received2: Packet<Int>? = nil
         
-        let chan1 = subj.unwrap.open(exec.newContext()) { _ in { received1 = $0 }}
-        let chan2 = subj.unwrap.open(exec.newContext()) { _ in { received2 = $0 }}
+        let chan1 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received1 = $0 }}
+        let chan2 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received2 = $0 }}
         
         exec.consumeAll()
         

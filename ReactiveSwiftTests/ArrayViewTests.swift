@@ -11,7 +11,7 @@ class ArrayViewTests: XCTestCase {
         let subj = ArrayCollection([1, 2, 3])
         
         var received: Packet<[ArrayDiff<Int>]> = .Done()
-        let chan = subj.unwrap.open(exec.newContext()) { _ in { received = $0 }}
+        let chan = subj.unwrap.open(exec.newContext()) { $0.subscribe { received = $0 }}
         
         // TODO It should be 0..
         XCTAssertEqual(1, subj.subscribers)

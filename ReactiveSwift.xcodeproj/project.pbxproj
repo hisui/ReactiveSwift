@@ -21,6 +21,7 @@
 		24410ED219C29DA400AD1A0F /* ArrayDequeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410ED119C29DA400AD1A0F /* ArrayDequeTests.swift */; };
 		24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410ED319C2AC4900AD1A0F /* Subject.swift */; };
 		24410EE219C312F400AD1A0F /* Monad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EE119C312F400AD1A0F /* Monad.swift */; };
+		2447E58E19DD19EE00113DDC /* SetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2447E58D19DD19EE00113DDC /* SetView.swift */; };
 		24F1922A19C723DB00AA85E3 /* SubjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1922919C723DB00AA85E3 /* SubjectTests.swift */; };
 		24FC5E2519DBE503000D1DD1 /* ArrayViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24FC5E2419DBE503000D1DD1 /* ArrayViewTests.swift */; };
 /* End PBXBuildFile section */
@@ -54,6 +55,7 @@
 		24410ED119C29DA400AD1A0F /* ArrayDequeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArrayDequeTests.swift; sourceTree = "<group>"; };
 		24410ED319C2AC4900AD1A0F /* Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Subject.swift; sourceTree = "<group>"; };
 		24410EE119C312F400AD1A0F /* Monad.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Monad.swift; sourceTree = "<group>"; };
+		2447E58D19DD19EE00113DDC /* SetView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SetView.swift; sourceTree = "<group>"; };
 		24A0BBFA19D802300043C6A7 /* ReactiveSwift.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ReactiveSwift.podspec; sourceTree = "<group>"; };
 		24A0BBFC19D8023F0043C6A7 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		24A0BBFD19D8023F0043C6A7 /* Podfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Podfile; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 			children = (
 				24410ED319C2AC4900AD1A0F /* Subject.swift */,
 				241C887919DB83E70087E462 /* ArrayView.swift */,
+				2447E58D19DD19EE00113DDC /* SetView.swift */,
 			);
 			name = Subject;
 			sourceTree = "<group>";
@@ -288,6 +291,7 @@
 				24410EC519C284F800AD1A0F /* gcd.swift in Sources */,
 				24410EC319C284F800AD1A0F /* ArrayDeque.swift in Sources */,
 				24410EC819C284F800AD1A0F /* combinators.swift in Sources */,
+				2447E58E19DD19EE00113DDC /* SetView.swift in Sources */,
 				24410EC219C284F800AD1A0F /* Box.swift in Sources */,
 				24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */,
 				24410EE219C312F400AD1A0F /* Monad.swift in Sources */,
