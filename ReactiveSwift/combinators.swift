@@ -41,6 +41,10 @@ public extension Stream {
     public func skip(n: UInt) -> Stream<A> {
         return n > 0 ? skipWhile { counter(n+1) } : self
     }
+    
+    public func fold<B>(initial: B, _ f: (B, A) -> B) -> Stream<B> {
+        return fold(initial) { f }
+    }
 
     public func fold<B>(initial: B, _ f: () -> (B, A) -> B) -> Stream<B> {
         return Streams.unpack(pack().innerBind {
@@ -125,6 +129,10 @@ public extension Stream {
     }
     
     public func nullify<B>() -> Stream<B> { return filter { _ in false }.map { _ in undefined() } }
+
+    public func parMap<B>(f: A -> B) -> Stream<B> {
+        return merge {{ e in Streams.exec([.Isolated]) { f(e) } }}
+    }
 
 }
 

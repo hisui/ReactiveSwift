@@ -5,7 +5,7 @@ import ReactiveSwift
 
 private extension Stream {
     func isolated<B>(name: String, f: Stream<A> -> Stream<B>) -> Stream<B> {
-        return isolated([.Actor(FakePID(name))], f: f)
+        return isolated([.Actor(FakePID(name))], f)
     }
 }
 

@@ -81,17 +81,12 @@ observer.subject.unwrap.subscribe { (e: Packet<ButtonEvent?>) in
 
 ###### Map-Reduce like operation
 ```swift
-func unbusyQueue() -> dispatch_queue_t { /* ... */ }
-
-Streams.range(0 ... 9).merge(-1) {{
-  Streams.pure($0)
-  .isolated([.Actor(GCDQueue(unbusyQueue()))]) {
-    $0 * $0 * $0 // assuming that this is a heavy process..
-  }
-}}
-.fold(0) { $0 + $1 }
-.subscribe { e: Packet<Int> in
-  if let o = e.value { println(o) } // ==> 2025
+Streams.range(0 ... 9).parMap { e in
+  NSThread.sleepForTimeInterval(3)
+  return e * e * e
+}
+.fold(0) { $0 + $1 }.subscribe { e: Packet<Int> in
+  if let o = e.value { println(o) } // ==> 2025 (in about 3 seconds)
 }
 ```
 

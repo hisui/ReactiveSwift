@@ -12,7 +12,7 @@ public class PID: Hashable {
 
 /// The properties which are  used when `ExecutionContext#spawn` create a new one.
 public enum ExecutionProperty: Equatable {
-    case Actor(PID), AllowSync, Priority(UInt16)
+    case Isolated, Actor(PID), AllowSync
 }
 
 /// This class serves the interfaces for which the client programs have tasks executed,
@@ -42,6 +42,11 @@ public func ==(lhs: PID, rhs: PID) -> Bool { return lhs.equals(rhs) }
 // TODO w/a The Swift compiler in future may be capable of automatically generating the codes like the following..
 public func ==(lhs: ExecutionProperty, rhs: ExecutionProperty) -> Bool {
     switch lhs {
+    case .Isolated:
+        switch rhs {
+        case .Isolated: return true
+        default: ()
+        }
     case .Actor(let e):
         switch rhs {
         case .Actor(e): return true
@@ -50,11 +55,6 @@ public func ==(lhs: ExecutionProperty, rhs: ExecutionProperty) -> Bool {
     case .AllowSync:
         switch rhs {
         case .AllowSync: return true
-        default: ()
-        }
-    case .Priority(let e):
-        switch rhs {
-        case .Priority(e): return true
         default: ()
         }
     }
