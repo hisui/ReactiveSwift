@@ -216,3 +216,26 @@ public extension Streams {
     }
 
 }
+
+extension Channel {
+    public func autoclose() -> Channel<A> { return AutoClosing(self) }
+}
+
+private class AutoClosing<A>: Channel<A> {
+
+    var origin: Channel<A>?
+    
+    init(_ origin: Channel<A>) { self.origin = origin }
+    
+    deinit { origin?.close() }
+    
+    override func subscribe(f: Packet<A> -> ()) {
+        origin?.subscribe(f)
+    }
+    
+    override func close() {
+        origin?.close()
+        origin = nil
+    }
+    
+}
