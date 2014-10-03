@@ -233,6 +233,17 @@ public extension Streams {
     public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
         return repeat(value, delay).take(1)
     }
+    
+    public func compact<A>(s: Stream<A?>) -> Stream<A> {
+        return s.flatMap { e in
+            if let o = e {
+                return Streams.pure(o)
+            }
+            else {
+                return Streams.done( )
+            }
+        }
+    }
 
 }
 
