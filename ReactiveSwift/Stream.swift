@@ -211,7 +211,7 @@ public class Streams {
         return source(property) { $0.flush(f()) }
     }
     
-    public class func exec<A>(f: @autoclosure () -> A) -> Stream<A> {
+    public class func lazy<A>(f: @autoclosure () -> A) -> Stream<A> {
         return source([]) { $0.flush(f()) }
     }
     

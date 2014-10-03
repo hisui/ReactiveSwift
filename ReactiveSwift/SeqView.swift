@@ -71,7 +71,7 @@ public class SeqCollection<E>: SeqView<E> {
     }
 
     public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
-        return Streams.exec(SeqCollection<F>(raw.map(f))).flatMap { peer in
+        return Streams.lazy(SeqCollection<F>(raw.map(f))).flatMap { (peer: SeqCollection<F>) in
             Streams.mix([
                 Streams.pure(peer),
                 setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
