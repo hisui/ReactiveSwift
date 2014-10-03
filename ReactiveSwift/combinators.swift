@@ -234,7 +234,7 @@ public extension Streams {
         return repeat(value, delay).take(1)
     }
     
-    public func compact<A>(s: Stream<A?>) -> Stream<A> {
+    public class func compact<A>(s: Stream<A?>) -> Stream<A> {
         return s.flatMap { e in
             if let o = e {
                 return Streams.pure(o)
