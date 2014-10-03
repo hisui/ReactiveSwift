@@ -2,7 +2,7 @@
 
 import Foundation
 
-public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
+public class SeqView<E>: SubjectSource<[SeqDiff<E>]> {
 
     public init() {}
     
@@ -10,12 +10,12 @@ public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
 
     public subscript(i: Int) -> E? { return nil }
     
-    public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
-        return Streams.pure(ArrayView<F>())
+    public func map<F>(f: E -> F) -> Stream<SeqView<F>> {
+        return Streams.pure(SeqView<F>())
     }
 
-    public func map<F>(f: E -> F, _ context: ExecutionContext) -> ArrayView<F> {
-        return ArrayView<F>()
+    public func map<F>(f: E -> F, _ context: ExecutionContext) -> SeqView<F> {
+        return SeqView<F>()
     }
 
     // TODO Swift compiler does'nt support overriding getter/setter yet
@@ -28,14 +28,14 @@ public class ArrayView<E>: SubjectSource<[ArrayDiff<E>]> {
 
 }
 
-public class ArrayCollection<E>: ArrayView<E> {
+public class SeqCollection<E>: SeqView<E> {
 
     private var raw: [E]
     
     public init(_ a: [E] = []) { raw = a }
     
     override public func firstValue() -> Box<UpdateItem> {
-        return Box([ArrayDiff<E>(0, 0, raw)])
+        return Box([SeqDiff<E>(0, 0, raw)])
     }
     
     override public func merge(update: UpdateType) {
@@ -51,27 +51,27 @@ public class ArrayCollection<E>: ArrayView<E> {
     override public subscript(i: Int) -> E? {
         get { return ((0 ..< Int(count)) ~= i) ? raw[i]: nil }
         set(e) {
-            apply([ArrayDiff(UInt(i), 1, [e!])], nil)
+            apply([SeqDiff(UInt(i), 1, [e!])], nil)
         }
     }
 
-    override public func map<F>(f: E -> F) -> Stream<ArrayView<F>> {
-        return bimap(f, { _ in undefined() }).map { $0 as ArrayView<F> }
+    override public func map<F>(f: E -> F) -> Stream<SeqView<F>> {
+        return bimap(f, { _ in undefined() }).map { $0 as SeqView<F> }
     }
     
-    override public func map<F>(f: E -> F,  _ context: ExecutionContext) -> ArrayView<F> {
+    override public func map<F>(f: E -> F,  _ context: ExecutionContext) -> SeqView<F> {
         return bimap(f, { _ in undefined() }, context)
     }
 
-    public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> ArrayCollection<F> {
-        let peer = ArrayCollection<F>(raw.map(f))
+    public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> SeqCollection<F> {
+        let peer = SeqCollection<F>(raw.map(f))
         setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
         setMappingBetween2(peer, self, { $0.map { $0.map(g) } }, context)
         return peer
     }
 
-    public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<ArrayCollection<F>> {
-        return Streams.exec(ArrayCollection<F>(raw.map(f))).flatMap { peer in
+    public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
+        return Streams.exec(SeqCollection<F>(raw.map(f))).flatMap { peer in
             Streams.mix([
                 Streams.pure(peer),
                 setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
@@ -81,49 +81,64 @@ public class ArrayCollection<E>: ArrayView<E> {
     }
 
     // TODO less costly implementation
-    public func filter(f: E -> Bool) -> ArrayView<E> {
-        let a = ArrayCollection<E>()
+    public func filter(f: E -> Bool) -> SeqView<E> {
+        let a = SeqCollection<E>()
         subscribe {
             if let o = $0.value { a.assign(self.raw.filter(f)) }
         }
         return a
     }
-
-    public func apply(diff: ArrayDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
     
-    public func apply(a: [ArrayDiff<E>], _ sender: AnyObject?) {
+    // TODO
+    public func biFilter(f: E -> Bool) -> SeqCollection<E> {
+        abort()
+    }
+    
+    // TODO
+    public func sortedBy(lt: (E, E) -> Bool) -> SortedSeqView<E> {
+        abort()
+    }
+    
+    // TODO
+    public func biSortedBy(lt: (E, E) -> Bool) -> SortedSeqCollection<E> {
+        abort()
+    }
+
+    public func apply(diff: SeqDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
+    
+    public func apply(a: [SeqDiff<E>], _ sender: AnyObject?) {
         merge(Update(a, sender ?? self))
     }
 
     public func addHead(e: E, sender: AnyObject? = nil) {
-        apply(ArrayDiff(0, 0, [e]), sender)
+        apply(SeqDiff(0, 0, [e]), sender)
     }
     
     public func addLast(e: E, sender: AnyObject? = nil) {
-        apply(ArrayDiff(count, 0, [e]), sender)
+        apply(SeqDiff(count, 0, [e]), sender)
     }
     
     public func removeAt(i: Int, sender: AnyObject? = nil) {
-        apply(ArrayDiff(UInt(i), 1), sender)
+        apply(SeqDiff(UInt(i), 1), sender)
     }
     
     public func insertAt(i: Int, _ e: E, sender: AnyObject? = nil) {
-        apply(ArrayDiff(UInt(i), 0, [e]), sender)
+        apply(SeqDiff(UInt(i), 0, [e]), sender)
     }
     
     public func assign(a: [E], sender: AnyObject? = nil) {
-        apply(ArrayDiff(0, count, a), sender)
+        apply(SeqDiff(0, count, a), sender)
     }
     
     public func assign(f: [E] -> [E], sender: AnyObject? = nil) {
-        apply(ArrayDiff(0, count, f(raw)), sender)
+        apply(SeqDiff(0, count, f(raw)), sender)
     }
     
     public func move(i: Int, to j: Int, sender: AnyObject? = nil) {
         if let a = self[i] {
             apply([
-                ArrayDiff(UInt(i), 1),
-                ArrayDiff(UInt(j), 0, [a]),
+                SeqDiff(UInt(i), 1),
+                SeqDiff(UInt(j), 0, [a]),
             ], sender)
         }
     }
@@ -140,7 +155,7 @@ public class ArrayCollection<E>: ArrayView<E> {
 
 }
 
-public class ArrayDiff<E> {
+public class SeqDiff<E> {
     
     public let offset: UInt
     public let delete: UInt
@@ -152,6 +167,6 @@ public class ArrayDiff<E> {
         self.insert = insert
     }
     
-    public func map<B>(f: E -> B) -> ArrayDiff<B> { return ArrayDiff<B>(offset, delete, insert.map(f)) }
+    public func map<B>(f: E -> B) -> SeqDiff<B> { return SeqDiff<B>(offset, delete, insert.map(f)) }
 
 }

@@ -12,7 +12,7 @@ public class PID: Hashable {
 
 /// The properties which are  used when `ExecutionContext#spawn` create a new one.
 public enum ExecutionProperty: Equatable {
-    case Isolated, Actor(PID), AllowSync
+    case Isolated, Actor(PID), AllowSync //, ForceSync
 }
 
 /// This class serves the interfaces for which the client programs have tasks executed,

@@ -3,14 +3,14 @@
 import XCTest
 import ReactiveSwift
 
-class ArrayViewTests: XCTestCase {
+class SeqViewTests: XCTestCase {
     
     func testGenralUse() {
         
         let exec = FakeExecutor()
-        let subj = ArrayCollection([1, 2, 3])
+        let subj = SeqCollection([1, 2, 3])
         
-        var received: Packet<[ArrayDiff<Int>]> = .Done()
+        var received: Packet<[SeqDiff<Int>]> = .Done()
         let chan = subj.unwrap.open(exec.newContext()) { $0.subscribe { received = $0 }}
         
         // TODO It should be 0..
@@ -39,7 +39,7 @@ class ArrayViewTests: XCTestCase {
     func testBiMap() {
         
         let exec = FakeExecutor()
-        let a = ArrayCollection([1, 2, 3])
+        let a = SeqCollection([1, 2, 3])
         let b = a.bimap({ $0 * 2 }, { $0 / 2 }, exec.newContext())
         
         XCTAssertEqual([1, 2, 3], a.array)
