@@ -73,7 +73,7 @@ public class SubjectSource<A>: Source<Update<A>> {
             }
         }
     }
-    
+
     public func merge(a: Update<A>) { return undefined() }
 
     func commit(a: Update<A>) {

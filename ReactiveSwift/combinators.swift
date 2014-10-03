@@ -133,6 +133,25 @@ public extension Stream {
     public func parMap<B>(f: A -> B) -> Stream<B> {
         return merge {{ e in Streams.exec([.Isolated]) { f(e) } }}
     }
+    
+    public func continueBy(f: () -> Stream<A>) -> Stream<A> {
+        return Streams.unpack(pack().flatMap { e in
+            switch e {
+            case .Done: return f().pack()
+            default:
+                return Streams.pure(e)
+            }
+        })
+    }
+    
+    public func closeBy<X>(s: Stream<X>) -> Stream<A> {
+        let cut = NSError()
+        return Streams.mix([self, s.flatMap { _ in Streams.fail(cut) }])
+        .recover { e in
+            e == cut ? Streams.done( ):
+                       Streams.fail(e)
+        }
+    }
 
 }
 
