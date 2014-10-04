@@ -49,15 +49,7 @@ public class FakeExecutionContext: ExecutionContext, Printable {
     }
 
     public func requires(property: [ExecutionProperty]) -> ExecutionContext {
-        var actor: String = self.actor
-        for e in property {
-            switch e {
-            case .Actor(let pid as FakePID): actor = pid.name
-            default:
-                ()
-            }
-        }
-        return FakeExecutionContext(executor, find(property, .AllowSync) != nil, actor, name)
+        return executor.newContext(property, FakePID(actor), name)
     }
     
     public func close() { executor.count-- }
@@ -88,7 +80,22 @@ public class FakeExecutor {
     public var numberOfRunningContexts: Int { get { return count } }
 
     public func newContext(_ name: String = __FUNCTION__) -> ExecutionContext {
-        return FakeExecutionContext(self, false, "main", name)
+        return newContext([], nil, name)
+    }
+
+    public func newContext(property: [ExecutionProperty], _ pid: FakePID? = nil, _ name: String = __FUNCTION__) -> ExecutionContext {
+        var actor = pid?.name
+        var synch = false
+        for e in property {
+            switch e {
+            case .Actor(let pid as FakePID): actor = pid.name
+            case .AllowSync:
+                synch = true
+            default:
+                ()
+            }
+        }
+        return FakeExecutionContext(self, synch, actor ?? "main", name)
     }
 
     public func consumeAll() -> Bool {

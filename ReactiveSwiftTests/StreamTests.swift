@@ -22,15 +22,15 @@ class StreamTests: XCTestCase {
         executor!.consumeAll()
     }
 
-    func newContext(_ name: String = __FUNCTION__) -> ExecutionContext {
-        let context = executor!.newContext(name)
+    func newContext(_ property: [ExecutionProperty] = [], _ name: String = __FUNCTION__) -> ExecutionContext {
+        let context = executor!.newContext(property, nil, name)
         contexts.append(context)
         return context
     }
     
-    func toArray<A>(s: Stream<A>, _ name: String = __FUNCTION__) -> [A] {
+    func toArray<A>(s: Stream<A>, _ property: [ExecutionProperty] = [], _ name: String = __FUNCTION__) -> [A] {
         var a = [A]()
-        s.open(newContext(name)).subscribe {
+        s.open(newContext(property, name)).subscribe {
             if let o = $0.value { a.append(o) }
         }
         consumeAll()
@@ -446,25 +446,12 @@ class StreamTests: XCTestCase {
     }
     
     func testGroupBy() {
+
+        let a = toArray(Streams.range(0 ... 9).groupBy { $0 % 2 }.merge {{ e in e }}, [.AllowSync])
         
-        let given = Streams.range(0 ... 9)
-        var group = [[Int]]()
-        
-        given
-        .groupBy { $0 % 2 }
-        .foreach { chan in
-            let i = group.count
-            group.append([])
-            chan.subscribe {
-                if let o = $0.value { group[i].append(o.1) }
-            }
-        }
-        .open(newContext())
-        
-        consumeAll()
-        
-        XCTAssertEqual([0, 2, 4, 6, 8], group[0])
-        XCTAssertEqual([1, 3, 5, 7, 9], group[1])
+        XCTAssertEqual(10, a.count)
+        XCTAssertEqual([0, 2, 4, 6, 8], a.filter { $0.0 % 2 == 0 }.map { $0.1 } )
+        XCTAssertEqual([1, 3, 5, 7, 9], a.filter { $0.0 % 2 == 1 }.map { $0.1 } )
     }
 
 }

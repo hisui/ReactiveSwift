@@ -239,7 +239,7 @@
 		24410E9719C284BC00AD1A0F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0600;
+				LastUpgradeCheck = 0610;
 				ORGANIZATIONNAME = segfault.jp;
 				TargetAttributes = {
 					24410E9F19C284BC00AD1A0F = {
@@ -417,11 +417,6 @@
 		24410EB419C284BC00AD1A0F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					"$(ARCHS_STANDARD)",
-				);
 				CLANG_ENABLE_MODULES = YES;
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
@@ -444,11 +439,6 @@
 		24410EB519C284BC00AD1A0F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					"$(ARCHS_STANDARD)",
-				);
 				CLANG_ENABLE_MODULES = YES;
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
