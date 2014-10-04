@@ -52,45 +52,58 @@ public class Update<A> {
 
 }
 
-public class SubjectSource<A>: Source<Update<A>> {
+public class SubjectSource<A>: ForeignSource<Update<A>> {
     
     public let name: String
     
     typealias UpdateItem = A
     typealias UpdateType = Update<A>
     
-    private var channels = [Dispatcher<Update<A>>] ()
-    
     public init(_ name: String = __FUNCTION__) {
         self.name = name
     }
     
-    deinit {
-        // println("SubjectSource(name='\(name)')#deinit :: firstValue={\(firstValue().raw)}")
-        for chan in channels {
-            chan.calleeContext.schedule(nil, 0) {
-                chan.emitIfOpen(.Done())
-            }
-        }
-    }
-
     public func merge(a: Update<A>) { return undefined() }
 
-    func commit(a: Update<A>) {
-        // TODO
-        for chan in channels {
-            chan.calleeContext.schedule(nil, 0) {
-                chan.emitIfOpen(.Next(Box(a)))
-            }
-        }
-    }
+    func commit(a: Update<A>) { emitValue(a) }
     
     func firstValue() -> Box<UpdateItem> {
         return undefined()
     }
 
     override final func invoke(chan: Dispatcher<Update<A>>) {
+        super.invoke(chan)
         chan.emitValue(Update(+firstValue(), self))
+    }
+    
+    public var unwrap: Stream<A> { return map { $0.detail } }
+
+}
+
+public class ForeignSource<A>: Source<A> {
+    
+    private var channels = [Dispatcher<A>] ()
+    
+    deinit {
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(.Done())
+            }
+        }
+    }
+    
+    final func emitValue(a: A) { emit(.Next(Box(a))) }
+
+    final func emit(a: Packet<A>) {
+        // TODO
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(a)
+            }
+        }
+    }
+    
+    override func invoke(chan: Dispatcher<A>) {
         chan.setCloseHandler { [weak self] in
             for i in 0 ..< (self?.channels.count ?? 0) { // TODO thread safe
                 if (self!.channels[i] === chan) {
@@ -101,17 +114,13 @@ public class SubjectSource<A>: Source<Update<A>> {
         }
         channels.append(chan)
     }
-    
-    // TODO
-    override final func isolate(callerContext: ExecutionContext) -> ExecutionContext {
-        callerContext.ensureCurrentlyInCompatibleContext()
+
+    override func isolate(callerContext: ExecutionContext) -> ExecutionContext {
         return callerContext.requires([.AllowSync])
     }
-    
+
     public var subscribers: Int { return channels.count }
     
-    public var unwrap: Stream<A> { return map { $0.detail } }
-
 }
 
 func setMappingBetween2<A, B>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B, context: ExecutionContext) {
