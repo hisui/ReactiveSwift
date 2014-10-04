@@ -25,7 +25,6 @@ public class Channel<A> {
 
 }
 
-
 /// An event.
 public enum Packet<A> {
 
@@ -49,13 +48,15 @@ public enum Packet<A> {
         }
     }
     
-    func map<B>(f: A -> B) -> Packet<B> {
+    public func map<B>(f: A -> B) -> Packet<B> {
         switch self {
         case let .Next(x): return .Next(x.map(f))
         case let .Fail(x): return .Fail(x)
         case let .Done( ): return .Done( )
         }
     }
+    
+    public func nullify<B>() -> Packet<B> { return map { _ in undefined() } }
 
 }
 
@@ -140,15 +141,16 @@ public extension Stream {
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
         return Streams.pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
     }
-    
-    public func groupBy<K: Hashable>(f: A -> K) -> Stream<Channel<(K, A)>> {
-        return Streams.source() { outer in
+
+    // Carrying inside streams out of the outside stream causes to lose "stability of meaning" of stream.
+    public func groupBy<K: Hashable>(f: A -> K) -> Stream<Stream<(K, A)>> {
+        return Streams.source([.AllowSync]) { outer in
             var base: Channel<A>?
-            var map = [K: Dispatcher<(K, A)>]()
+            var map = [K: ForeignSource<(K, A)>]()
             outer.setCloseHandler {
+                map.removeAll(keepCapacity: false)
                 base?.close()
                 base = nil
-                for e in map.values { e.close() }
             }
             self.open(outer.calleeContext) {
                 base = $0
@@ -158,13 +160,14 @@ public extension Stream {
                         let k = f(+x)
                         var chan = map[k]
                         if (chan == nil) {
-                            chan = Dispatcher(outer.callerContext, outer.calleeContext)
+                            chan = ForeignSource()
                             map[k] = chan
                             outer.emitIfOpen(.Next(Box(chan!)))
                         }
                         chan!.emitValue((k, x.raw))
                     default:
-                        for o in map.values { o.emit(e.map { _ in undefined() } ) }
+                        for o in map.values { o.emit(e.nullify()) }
+                        outer.emit(e.nullify())
                     }
                 }
             }
