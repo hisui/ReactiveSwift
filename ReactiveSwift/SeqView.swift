@@ -2,11 +2,15 @@
 
 import Foundation
 
-public class SeqView<E>: SubjectSource<[SeqDiff<E>]> {
+public class SeqView<E>: SubjectSource<[SeqDiff<E>]>, SequenceType {
 
+    typealias Generator = IndexingGenerator<[E]>
+    
     public init() {}
     
-    override public func firstValue() -> Box<UpdateItem> { return Box([]) }
+    public func generate() -> Generator { return array.generate() }
+    
+    override public var firstValue: Box<UpdateDiff> { return Box([]) }
 
     public subscript(i: Int) -> E? { return nil }
     
@@ -17,39 +21,27 @@ public class SeqView<E>: SubjectSource<[SeqDiff<E>]> {
     public func map<F>(f: E -> F, _ context: ExecutionContext) -> SeqView<F> {
         return SeqView<F>()
     }
+    
+    public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
+        return Streams.pure(SeqView<E>())
+    }
+    
+    public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
+        return Streams.pure(SeqView<E>())
+    }
 
-    // TODO Swift compiler does'nt support overriding getter/setter yet
-    // public var count: UInt { return undefined() }
-    // public var array: [E]  { return undefined() }
+    public var count: UInt { return 0 }
     
-    public func size() -> UInt { return 0 }
+    public var array: [E]  { return [] }
     
-    public func compose() -> Stream<[E]> { return unwrap.map { _ in undefined() } }
+    public func compose() -> Stream<[E]> { return map { _ in undefined() } }
 
 }
 
-public class SeqCollection<E>: SeqView<E> {
-
-    private var raw: [E]
-    
-    public init(_ a: [E] = []) { raw = a }
-    
-    override public func firstValue() -> Box<UpdateItem> {
-        return Box([SeqDiff<E>(0, 0, raw)])
-    }
-    
-    override public func merge(update: UpdateType) {
-        for diff in update.detail {
-            assert(diff.offset + diff.delete <= count)
-            raw.replaceRange(
-                Int (diff.offset) ..<
-                    Int (diff.offset + diff.delete), with: diff.insert)
-        }
-        commit(update)
-    }
+public class MutableSeqView<E>: SeqView<E> {
 
     override public subscript(i: Int) -> E? {
-        get { return ((0 ..< Int(count)) ~= i) ? raw[i]: nil }
+        get { return undefined() }
         set(e) {
             apply([SeqDiff(UInt(i), 1, [e!])], nil)
         }
@@ -59,49 +51,30 @@ public class SeqCollection<E>: SeqView<E> {
         return bimap(f, { _ in undefined() }).map { $0 as SeqView<F> }
     }
     
+    // deprecated
     override public func map<F>(f: E -> F,  _ context: ExecutionContext) -> SeqView<F> {
         return bimap(f, { _ in undefined() }, context)
     }
 
+    // deprecated
     public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> SeqCollection<F> {
-        let peer = SeqCollection<F>(raw.map(f))
-        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
-        setMappingBetween2(peer, self, { $0.map { $0.map(g) } }, context)
-        return peer
+        return undefined()
     }
 
     public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
-        return Streams.lazy(SeqCollection<F>(raw.map(f))).flatMap { (peer: SeqCollection<F>) in
-            Streams.mix([
-                Streams.pure(peer),
-                setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
-                setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
-            ])
-        }
+        return undefined()
+    }
+    
+    override public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
+        return undefined()
     }
 
-    // TODO less costly implementation
-    public func filter(f: E -> Bool) -> SeqView<E> {
-        let a = SeqCollection<E>()
-        subscribe {
-            if let o = $0.value { a.assign(self.raw.filter(f)) }
-        }
-        return a
+    override public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
+        return undefined()
     }
-    
-    // TODO
+
     public func biFilter(f: E -> Bool) -> SeqCollection<E> {
-        abort()
-    }
-    
-    // TODO
-    public func sortedBy(lt: (E, E) -> Bool) -> SortedSeqView<E> {
-        abort()
-    }
-    
-    // TODO
-    public func biSortedBy(lt: (E, E) -> Bool) -> SortedSeqCollection<E> {
-        abort()
+        return undefined()
     }
 
     public func apply(diff: SeqDiff<E>, _ sender: AnyObject?) { apply([diff], sender) }
@@ -131,7 +104,7 @@ public class SeqCollection<E>: SeqView<E> {
     }
     
     public func assign(f: [E] -> [E], sender: AnyObject? = nil) {
-        apply(SeqDiff(0, count, f(raw)), sender)
+        apply(SeqDiff(0, count, f(array)), sender)
     }
     
     public func move(i: Int, to j: Int, sender: AnyObject? = nil) {
@@ -142,16 +115,97 @@ public class SeqCollection<E>: SeqView<E> {
             ], sender)
         }
     }
-    
-    public var count: UInt { return UInt(raw.count) }
-    
-    public var array: [E]  { return raw }
-    
-    override public func size() -> UInt { return count }
-    
-    override public func compose() -> Stream<[E]> {
-        return unwrap.map { [unowned self] _ in self.raw }
+
+    public func removeFirst(sender: AnyObject? = nil, f: E -> Bool) {
+        for (i, e) in enumerate(self) { if f(e) {
+            removeAt(i, sender: sender)
+            break
+        }}
     }
+    
+    public func updateFirst(o: E, sender: AnyObject? = nil, f: E -> Bool) -> Bool {
+        for (i, e) in enumerate(self) { if f(e) {
+            self[i] = o
+            return true
+        }}
+        return false
+    }
+
+}
+
+public class SeqCollection<E>: MutableSeqView<E> {
+    
+    private var raw: [E]
+    
+    public init(_ a: [E] = []) { raw = a }
+
+    override public subscript(i: Int) -> E? {
+        get { return ((0 ..< Int(count)) ~= i) ? raw[i]: nil }
+        set(e) {
+            super[i] = e
+        }
+    }
+    
+    override public var firstValue: Box<UpdateDiff> {
+        return Box([SeqDiff<E>(0, 0, raw)])
+    }
+    
+    override public func merge(update: UpdateType) {
+        for diff in update.detail {
+            assert(diff.offset + diff.delete <= count)
+            raw.replaceRange(
+                Int (diff.offset) ..<
+                Int (diff.offset + diff.delete), with: diff.insert)
+        }
+        commit(update)
+    }
+
+    override public var count: UInt { return UInt(raw.count) }
+    
+    override public var array: [E]  { return raw }
+    
+    // deprecated
+    override public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> SeqCollection<F> {
+        let peer = SeqCollection<F>(raw.map(f))
+        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
+        setMappingBetween2(peer, self, { $0.map { $0.map(g) } }, context)
+        return peer
+    }
+    
+    override public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
+        return Streams.lazy(SeqCollection<F>(raw.map(f))).flatMap { (peer: SeqCollection<F>) in
+            Streams.mix([
+                Streams.pure(peer),
+                setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
+                setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
+            ])
+        }
+    }
+    
+    // TODO less costly implementation
+    override public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
+        let a = SeqCollection<E>()
+        return Streams.concat([
+            Streams.pure(a),
+            foreach { [weak self] _ in a.assign(sorted(self!.raw, lt)) }.nullify()
+        ])
+    }
+    
+    // TODO less costly implementation
+    override public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
+        let a = SeqCollection<E>()
+        return Streams.concat([
+            Streams.pure(a),
+            foreach { [weak self] _ in a.assign(self!.raw.filter(f)) }.nullify()
+        ])
+    }
+    
+    // TODO
+    override public func biFilter(f: E -> Bool) -> SeqCollection<E> {
+        abort()
+    }
+    
+    override public func compose() -> Stream<[E]> { return map { _ in self.raw } }
 
 }
 

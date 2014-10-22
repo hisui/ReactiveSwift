@@ -99,22 +99,6 @@ public extension Stream {
             }
         })
     }
-
-    public func switchIf<B>(predicate: () -> A -> Bool
-        , during: A -> Stream<Packet<B>>
-        , follow: A -> Stream<Packet<B>>) -> Stream<B>
-    {
-        return Streams.unpack(innerBind {
-            let f = predicate()
-            var b = false
-            return { e in
-                if !b {
-                    b = f(e)
-                }
-                return ( b ? follow(e): during(e) )
-            }
-        })
-    }
     
     public func takeWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
@@ -152,12 +136,18 @@ public extension Stream {
                        Streams.fail(e)
         }
     }
+    
+    public func fill<B>(e: B) -> Stream<B> { return map { _ in e } }
 
 }
 
 private func counter<X>(var n: UInt) -> (X -> Bool) { return { _ in --n == 0 } }
 
 public extension Streams {
+    
+    public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
+        return repeat(value, delay).take(1)
+    }
     
     public class func flatten<A>(s: Stream<Stream<A>>) -> Stream<A> { return s.flatMap { $0 } }
     
@@ -229,11 +219,7 @@ public extension Streams {
         }
         // .recover { $0 === exit ? Streams.done(): Streams.fail($0) }
     }
-    
-    public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
-        return repeat(value, delay).take(1)
-    }
-    
+
     public class func compact<A>(s: Stream<A?>) -> Stream<A> {
         return s.flatMap { e in
             if let o = e {

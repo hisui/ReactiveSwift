@@ -14,6 +14,9 @@ public class Stream<A> {
     public func open(callerContext: ExecutionContext) -> Channel<A> {
         return open(callerContext) { _ in }
     }
+    
+    public func open() -> Channel<A> { return open(GCDExecutionContext()) }
+
 }
 
 /// A subscription of an event stream.
@@ -62,7 +65,7 @@ public enum Packet<A> {
 
 public extension Stream {
     
-    public func merge<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(-1, f) }
+    public func merge<B>(f: () -> A -> Stream<B>) -> Stream<B> { return merge(Int.max, f) }
     
     public func merge<B>(count: Int, _ f: () -> A -> Stream<B>) -> Stream<B> {
         return Merge(self, f, count)
@@ -72,10 +75,10 @@ public extension Stream {
     
     public func outerBind<B>(f: () -> A -> Stream<B>) -> Stream<B> {
         return merge {
-            var last: Dispatcher<B>? = nil
+            var last: Dispatcher<B>?
             let bind = f()
             return { e in
-                return Streams.pipe([.AllowSync]) {
+                return pipe([.AllowSync]) {
                     last?.emitIfOpen(.Done())
                     last = $0
                     return bind(e)
@@ -94,7 +97,7 @@ public extension Stream {
 
     public func pack() -> Stream<Packet<A>> {
         return Streams.source([.AllowSync]) { chan in
-            var base: Channel<A>? = nil
+            var base: Channel<A>?
             chan.setCloseHandler {
                 base?.close()
                 base = nil
@@ -110,7 +113,7 @@ public extension Stream {
 
     public func onClose(action: () -> ()) -> Stream<A> {
         return Streams.source([.AllowSync]) { chan in
-            var base: Channel<A>? = nil
+            var base: Channel<A>?
             chan.setCloseHandler {
                 chan.callerContext.schedule(chan.calleeContext, 0, action)
                 base?.close()
@@ -133,13 +136,15 @@ public extension Stream {
     public func isolated<B>(f: Stream<A> -> Stream<B>) -> Stream<B> { return isolated([.Isolated], f) }
     
     public func isolated<B>(property: [ExecutionProperty], _ f: Stream<A> -> Stream<B>) -> Stream<B> {
-        return flatMap { e in Streams.pipe(property) { _ in f(Streams.pure(e)) } }
+        return flatMap { e in
+            pipe(property) { _ in f(Streams.pure(e)) }
+        }
     }
 
     public func zipWith<B>(value: B) -> Stream<(A, B)> { return map { ($0, value) } }
     
     public func zipWithContext() -> Stream<(A, ExecutionContext)> {
-        return Streams.pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
+        return pipe([.AllowSync]) { self.zipWith($0.calleeContext) }
     }
 
     // Carrying inside streams out of the outside stream causes to lose "stability of meaning" of stream.
@@ -172,6 +177,22 @@ public extension Stream {
                 }
             }
         }
+    }
+    
+    public func switchIf<B>(predicate: () -> A -> Bool
+        , during: A -> Stream<Packet<B>>
+        , follow: A -> Stream<Packet<B>>) -> Stream<B>
+    {
+        return Streams.unpack(innerBind {
+            let f = predicate()
+            var b = false
+            return { e in
+                if !b {
+                    b = f(e)
+                }
+                return ( b ? follow(e): during(e) )
+            }
+        })
     }
 
 }
@@ -215,7 +236,7 @@ public class Streams {
     }
     
     public class func lazy<A>(f: @autoclosure () -> A) -> Stream<A> {
-        return source([]) { $0.flush(f()) }
+        return source([.AllowSync]) { $0.flush(f()) }
     }
     
     public class func range<A: ForwardIndexType>(range: Range<A>) -> Stream<A> {
@@ -231,7 +252,7 @@ public class Streams {
 
     public class func unpack<A>(s: Stream<Packet<A>>) -> Stream<A> {
         return source([.AllowSync]) { chan in
-            var base: Channel<Packet<A>>? = nil
+            var base: Channel<Packet<A>>?
             chan.setCloseHandler {
                 base?.close()
                 base = nil
@@ -260,24 +281,24 @@ public class Streams {
         }
     }
     
-    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int = -1) -> Stream<A> {
+    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int = Int.max) -> Stream<A> {
         return a.merge(count) {{ $0 }}
     }
-    
-    public class func pipe<A>(property: [ExecutionProperty], _ f: Dispatcher<A> -> Stream<A>) -> Stream<A> {
-        return Streams.source(property) { chan in
-            var base: Channel<A>? = nil
-            chan.setCloseHandler {
-                base?.close()
-                base = nil
-            }
-            f(chan).open(chan.calleeContext) {
-                base = $0
-                base!.subscribe { chan.emitIfOpen($0) }
-            }
+
+}
+
+private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> Stream<A>) -> Stream<A> {
+    return Streams.source(property) { chan in
+        var base: Channel<A>?
+        chan.setCloseHandler {
+            base?.close()
+            base = nil
+        }
+        f(chan).open(chan.calleeContext) {
+            base = $0
+            base!.subscribe { chan.emitIfOpen($0) }
         }
     }
-
 }
 
 private func repeatWhile(context: ExecutionContext, delay: Double, f: () -> Bool) {
@@ -286,10 +307,10 @@ private func repeatWhile(context: ExecutionContext, delay: Double, f: () -> Bool
     }
 }
 
-// TODO It shall be separated into `Channel` and `Dispatcher` alone..
 /// An instance of this class emits events to `Channel` corresponding to itself.
 public class Dispatcher<A>: Channel<A> {
     
+    // TODO It shall be separated into `Channel` and `Dispatcher` alone..
     public let callerContext: ExecutionContext
     public let calleeContext: ExecutionContext
 
@@ -312,7 +333,6 @@ public class Dispatcher<A>: Channel<A> {
         emit(.Next(Box(e)))
     }
 
-    // TODO emitAndWait: Cont<()>
     public func emit(e: Packet<A>) {
         assert(calleeOpen, "This channel was closed.")
         emitIfOpen(e)
@@ -384,6 +404,51 @@ public class Dispatcher<A>: Channel<A> {
 
 }
 
+public class ForeignSource<A>: Source<A> {
+    
+    private var channels = [Dispatcher<A>] ()
+    
+    deinit {
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(.Done())
+            }
+        }
+    }
+    
+    public override init() {}
+    
+    public final func emitValue(a: A) { emit(.Next(Box(a))) }
+    
+    public final func emit(a: Packet<A>) {
+        // TODO
+        for chan in channels {
+            chan.calleeContext.schedule(nil, 0) {
+                chan.emitIfOpen(a)
+            }
+        }
+    }
+    
+    override func invoke(chan: Dispatcher<A>) {
+        chan.setCloseHandler { [weak self] in
+            for i in 0 ..< (self?.channels.count ?? 0) { // TODO thread safe
+                if (self!.channels[i] === chan) {
+                    self!.channels.removeAtIndex(i)
+                    break
+                }
+            }
+        }
+        channels.append(chan)
+    }
+
+    override func isolate(callerContext: ExecutionContext) -> ExecutionContext {
+        return callerContext.requires([.AllowSync])
+    }
+    
+    public var subscribers: Int { return channels.count }
+    
+}
+
 class Source<A>: Stream<A> {
 
     override func open(callerContext: ExecutionContext, _ cont: Channel<A> -> ()) -> Channel<A> {
@@ -432,7 +497,7 @@ private final class Merge<A, B>: Source<B> {
     override func invoke(chan: Dispatcher<B>) {
         
         var alive = [Channel<B>]()
-        var base: Channel<A>? = nil
+        var base: Channel<A>?
         var next: (Packet<A> -> ())!
         chan.setCloseHandler {
             base?.close()

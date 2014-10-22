@@ -35,3 +35,10 @@ public func >>| <A, B>(ma: Packet<A>, f: A -> Packet<B>) -> Packet<B> {
     case let .Done   : return .Done( )
     }
 }
+
+public func >>| <A, B>(ma: A?, f: A -> B?) -> B? {
+    switch ma {
+    case let .Some(a): return f(a)
+    case let .None( ): return .None
+    }
+}

@@ -6,7 +6,7 @@ public class SetView<E: Hashable>: SubjectSource<SetDiff<E>> {
     
     public init() {}
     
-    override public func firstValue() -> Box<UpdateItem> { return Box(SetDiff()) }
+    override public var firstValue: Box<UpdateDiff> { return Box(SetDiff()) }
     
     public subscript(i: Int) -> E? { return nil }
     
@@ -30,8 +30,8 @@ public class SetCollection<E: Hashable>: SetView<E> {
     
     public init(a: [E] = []) { self.raw = newDictionary(a, ()) }
     
-    override public func firstValue() -> Box<UpdateItem> {
-        return Box(SetDiff<E>(Array(raw.keys)))
+    override public var firstValue: Box<UpdateDiff> {
+        return Box(SetDiff(Array(raw.keys)))
     }
     
     override public func merge(update: UpdateType) {

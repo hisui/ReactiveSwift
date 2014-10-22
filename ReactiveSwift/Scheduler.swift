@@ -5,7 +5,7 @@ import Foundation
 /// An abstract representation of an isolated process like the "actor".
 public class PID: Hashable {
     
-    public var hashValue: Int { get { return 0 } }
+    public var hashValue: Int { return 0 }
     
     public func equals(o: PID) -> Bool { return false }
 }
@@ -22,7 +22,6 @@ public protocol ExecutionContext {
     /// Returns a current time whose timeline is specific to an actual implementation.
     var currentTime: NSDate { get }
 
-    // TODO deadline, priority, naming and so on
     /// Schedules the given task to be invoked on this context.
     func schedule(callerContext: ExecutionContext?, _ delay: Double, _ task: () -> ())
     
