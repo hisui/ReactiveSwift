@@ -183,7 +183,7 @@ public extension Stream {
         , during: A -> Stream<Packet<B>>
         , follow: A -> Stream<Packet<B>>) -> Stream<B>
     {
-        return Streams.unpack(innerBind {
+        return unpack(innerBind {
             let f = predicate()
             var b = false
             return { e in
@@ -250,22 +250,6 @@ public class Streams {
 
     public class func args<A>(a: A...) -> Stream<A> { return list(a) }
 
-    public class func unpack<A>(s: Stream<Packet<A>>) -> Stream<A> {
-        return source([.AllowSync]) { chan in
-            var base: Channel<Packet<A>>?
-            chan.setCloseHandler {
-                base?.close()
-                base = nil
-            }
-            s.open(chan.calleeContext) {
-                base = $0
-                base!.subscribe {
-                     chan.emitIfOpen($0 >>| { $0 })
-                }
-            }
-        }
-    }
-
     public class func repeat<A>(value: A, _ delay: Double) -> Stream<A> {
         return Streams.source { chan in
             var holder: A? = value
@@ -280,11 +264,27 @@ public class Streams {
             }
         }
     }
-    
-    public class func merge<A>(a: Stream<Stream<A>>, _ count: Int = Int.max) -> Stream<A> {
-        return a.merge(count) {{ $0 }}
-    }
 
+}
+
+public func unpack<A>(s: Stream<Packet<A>>) -> Stream<A> {
+    return Streams.source([.AllowSync]) { chan in
+        var base: Channel<Packet<A>>?
+        chan.setCloseHandler {
+            base?.close()
+            base = nil
+        }
+        s.open(chan.calleeContext) {
+            base = $0
+            base!.subscribe {
+                chan.emitIfOpen($0 >>| { $0 })
+            }
+        }
+    }
+}
+
+public func merge<A>(a: Stream<Stream<A>>, _ count: Int = Int.max) -> Stream<A> {
+    return a.merge(count) {{ $0 }}
 }
 
 private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> Stream<A>) -> Stream<A> {

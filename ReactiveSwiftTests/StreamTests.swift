@@ -121,7 +121,7 @@ class StreamTests: XCTestCase {
             Streams.pure("B"),
             Streams.pure("C"))
         
-        let result: Stream<String> = Streams.flatten(given)
+        let result: Stream<String> = flatten(given)
         
         XCTAssertEqual(["A", "B", "C"], toArray(result))
     }
@@ -129,7 +129,7 @@ class StreamTests: XCTestCase {
     func testConcat() {
         
         XCTAssertEqual(["A", "B", "C"], toArray(
-            Streams.concat([
+            concat([
                 Streams.pure("A"),
                 Streams.pure("B"),
                 Streams.pure("C") ])))
@@ -140,7 +140,7 @@ class StreamTests: XCTestCase {
         let a = Streams.args("A", "B", "C")
         let b = Streams.args(1, 2, 3)
 
-        let result = toArray(Streams.zip(a, b))
+        let result = toArray(zip(a, b))
         XCTAssertEqual(["A", "B", "C"], result.map { $0.0 })
         XCTAssertEqual([  1,   2,   3], result.map { $0.1 })
 
@@ -154,12 +154,12 @@ class StreamTests: XCTestCase {
     
     func testDistinct() {
         XCTAssertEqual([1, 2, 3, 4, 5],
-            toArray(Streams.distinct(Streams.args(1, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5))))
+            toArray(distinct(Streams.args(1, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5))))
     }
     
     func testSeq() {
         
-        let given: Stream<[String]> = Streams.seq([
+        let given: Stream<[String]> = seq([
             Streams.pure("A"),
             Streams.pure("B"),
             Streams.pure("C")])
@@ -351,7 +351,7 @@ class StreamTests: XCTestCase {
         var value: String? = nil
         var count: Int     = 0
         
-        let chan = Streams.concat([
+        let chan = concat([
             Streams.timeout(1, "A"), // 1 (<=)
             Streams.timeout(3, "B"), // 4
             Streams.timeout(1, "C"), // 5
@@ -406,7 +406,7 @@ class StreamTests: XCTestCase {
     func testMix() {
         
         let given: Stream<String> =
-        Streams.mix([
+        mix([
             Streams.pure("A"),
             Streams.pure("B")])
         
@@ -421,7 +421,7 @@ class StreamTests: XCTestCase {
     func testRace() {
         
         let given: Stream<Either<String, Int>> =
-        Streams.race(
+        race(
             Streams.pure("A"),
             Streams.pure( 1 ))
         

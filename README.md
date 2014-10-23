@@ -46,11 +46,11 @@ s.flatMap { (e: Packet<String>) in
 }
 ```
 
-###### `Streams.mix` - interleaves the given streams(of the same type) to one stream
+###### `mix` - interleaves the given streams(of the same type) to one stream
 ```swift
 let a: Stream<String> = Streams.pure("foo")
 let b: Stream<String> = Streams.list("bar")
-let c: Stream<String> = Streams.mix([a, b])
+let c: Stream<String> = mix([a, b])
 
 c.subscribe { (e: Packet<String>) in
   if let o = e.value { println(o) }

@@ -174,7 +174,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     
     override public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
         return Streams.lazy(SeqCollection<F>(raw.map(f))).flatMap { (peer: SeqCollection<F>) in
-            Streams.mix([
+            mix([
                 Streams.pure(peer),
                 setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
                 setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
@@ -185,7 +185,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     // TODO less costly implementation
     override public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
         let a = SeqCollection<E>()
-        return Streams.concat([
+        return concat([
             Streams.pure(a),
             foreach { [weak self] _ in a.assign(sorted(self!.raw, lt)) }.nullify()
         ])
@@ -194,7 +194,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     // TODO less costly implementation
     override public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
         let a = SeqCollection<E>()
-        return Streams.concat([
+        return concat([
             Streams.pure(a),
             foreach { [weak self] _ in a.assign(self!.raw.filter(f)) }.nullify()
         ])
