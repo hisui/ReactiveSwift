@@ -18,8 +18,10 @@ public class SetView<E: Hashable>: SubjectSource<SetDiff<E>> {
         return SetView<F>()
     }
 
-    public func size() -> UInt { return 0 }
+    public var count: UInt { return 0 }
     
+    public var array: [E]  { return [] }
+
     public func compose() -> Stream<[E: ()]> { return unwrap.map { _ in undefined() } }
 
 }
@@ -61,7 +63,9 @@ public class SetCollection<E: Hashable>: SetView<E> {
         update(SetDiff(insert, delete))
     }
     
-    override public func size() -> UInt { return UInt(raw.count) }
+    override public var count: UInt { return UInt(raw.count) }
+    
+    override public var array: [E]  { return raw.keys.array }
     
     override public func compose() -> Stream<[E: ()]> {
         return unwrap.map { [unowned self] _ in self.raw }

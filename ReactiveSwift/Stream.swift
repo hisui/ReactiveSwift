@@ -223,9 +223,8 @@ public class Streams {
 
     public class func list<A>(a: [A]) -> Stream<A> {
         return source([.AllowSync]) { chan in
-            var i = 0
-            while i < a.count && !chan.isClosed {
-                chan.emitValue( a[i++] )
+            for var i = 0; i < a.count && !chan.isClosed; ++i {
+                chan.emitValue(a[i])
             }
             chan.emitIfOpen(.Done())
         }
