@@ -2,7 +2,7 @@
 
 import Foundation
 
-extension NSNotificationCenter {
+public extension NSNotificationCenter {
 
     public func streamOfEvent(name: String) -> Stream<NSNotification> {
         return Streams.source { chan in

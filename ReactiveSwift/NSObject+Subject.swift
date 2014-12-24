@@ -2,13 +2,13 @@
 
 import Foundation
 
-extension NSObject {
+public extension NSObject {
     
-    func setAdditionalField(key: UnsafePointer<Void>, _ o: AnyObject?) {
+    public func setAdditionalField(key: UnsafePointer<Void>, _ o: AnyObject?) {
         objc_setAssociatedObject(self, key, o, objc_AssociationPolicy(OBJC_ASSOCIATION_RETAIN_NONATOMIC))
     }
     
-    func getAdditionalField(key: UnsafePointer<Void>) -> AnyObject? {
+    public func getAdditionalField(key: UnsafePointer<Void>) -> AnyObject? {
         return objc_getAssociatedObject(self, key)
     }
     
