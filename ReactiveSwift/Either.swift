@@ -4,7 +4,7 @@ public enum Either<L, R> {
     
     case  Left(Box<L>), Right(Box<R>)
     
-    public func fold<V>(lhs: L -> V, rhs: R -> V) -> V {
+    public func fold<V>(lhs: L -> V, _ rhs: R -> V) -> V {
         switch self {
         case .Left (let box): return lhs(+box)
         case .Right(let box): return rhs(+box)

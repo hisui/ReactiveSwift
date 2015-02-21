@@ -39,7 +39,7 @@ public extension UIControl {
     init(_ f: () -> ()) { self.f = { _ in f() } }
     
     init<T: AnyObject>(_ f: T -> ()) {
-        self.f = { f($0 as T) }
+        self.f = { f($0 as! T) }
     }
     
     @objc func call(sender: AnyObject) { f(sender) }

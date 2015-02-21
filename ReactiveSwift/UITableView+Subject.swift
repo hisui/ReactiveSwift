@@ -12,7 +12,7 @@ public extension UITableView {
 
     public func setDataSource<T, C: UITableViewCell>(model: SeqCollection<T>, prototypeCell: String, _ f: (T, C) -> ()) -> Stream<()> {
         return setDataSource(model) { [weak self] (e, i) in
-            let (cell) = self!.dequeueReusableCellWithIdentifier(prototypeCell) as C
+            let (cell) = self!.dequeueReusableCellWithIdentifier(prototypeCell) as! C
             f(e, cell)
             return cell
         }
@@ -20,7 +20,7 @@ public extension UITableView {
     
     public func setDataSource<T, C: UITableViewCell>(model: SeqView<T>, prototypeCell: String, _ f: (T, C) -> ()) -> Stream<()> {
         return setDataSource(model) { [weak self] (e, i) in
-            let (cell) = self!.dequeueReusableCellWithIdentifier(prototypeCell) as C
+            let (cell) = self!.dequeueReusableCellWithIdentifier(prototypeCell) as! C
             f(e, cell)
             return cell
         }
@@ -66,7 +66,7 @@ private class TableViewSelectionSubject<T>: SetCollection<NSIndexPath> {
     
     private weak var table: UITableView!
     
-    private let observer: NotificationObserver?
+    private var observer: NotificationObserver? = nil
     
     init(_ table: UITableView) {
         self.table = table
@@ -75,7 +75,7 @@ private class TableViewSelectionSubject<T>: SetCollection<NSIndexPath> {
         observer = NotificationObserver(nil, UITableViewSelectionDidChangeNotification)
         { [weak self] e in
             if (e.object === self?.table) {
-                self!.assign(self!.table.indexPathsForSelectedRows() as [NSIndexPath]? ?? [], sender: table)
+                self!.assign((self!.table.indexPathsForSelectedRows() as? [NSIndexPath]) ?? [], sender: table)
             }
         }
     }
@@ -118,7 +118,7 @@ internal class SeqViewErasure<T, V: UIView>: NSObject, SeqViewBridge {
     
     var count: Int { return Int(a.count) }
     
-    var mutable: SeqCollection<T> { return a as SeqCollection<T> }
+    var mutable: SeqCollection<T> { return a as! SeqCollection<T> }
     
     func viewForIndex(path: NSIndexPath) -> UIView {
         return f(a[path.row]!, path.row)
@@ -142,12 +142,12 @@ private class TableViewDataSource: NSObject, UITableViewDataSource {
         self.model = model
     }
     
-    func tableView(_: UITableView, numberOfRowsInSection _: Int) -> Int {
+    @objc func tableView(_: UITableView, numberOfRowsInSection _: Int) -> Int {
         return model.count
     }
     
-    func tableView(_: UITableView, cellForRowAtIndexPath path: NSIndexPath) -> UITableViewCell {
-        return model.viewForIndex(path) as UITableViewCell
+    @objc func tableView(_: UITableView, cellForRowAtIndexPath path: NSIndexPath) -> UITableViewCell {
+        return model.viewForIndex(path) as! UITableViewCell
     }
     
 }
@@ -176,7 +176,7 @@ private class MutableTableViewDataSource: TableViewDataSource {
 
 internal extension SeqDiff {
     var deletes: [NSIndexPath] { return indexPathsInRange(offset ..< (offset+delete)) }
-    var inserts: [NSIndexPath] { return indexPathsInRange(offset ..< (offset+insert.count)) }
+    var inserts: [NSIndexPath] { return indexPathsInRange(offset ..< (offset+UInt(insert.count))) }
 }
 
 private func indexPathsInRange(range: Range<UInt>) -> [NSIndexPath] {

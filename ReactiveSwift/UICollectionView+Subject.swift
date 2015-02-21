@@ -5,7 +5,7 @@ import UIKit
 public extension UICollectionView {
     
     private func dequeueCell<C: UICollectionViewCell>(id: String) -> C {
-        return dequeueReusableCellWithReuseIdentifier(id, forIndexPath: NSIndexPath(forRow: 0, inSection: 0)) as C
+        return dequeueReusableCellWithReuseIdentifier(id, forIndexPath: NSIndexPath(forRow: 0, inSection: 0)) as! C
     }
 
     public func setDataSource<T, C: UICollectionViewCell>(model: SeqView<T>, prototypeCell: String, _ f: (T, C) -> ()) -> Stream<()> {
@@ -38,12 +38,12 @@ public extension UICollectionView {
                 self.deleteItemsAtIndexPaths(e.deletes)
                 self.insertItemsAtIndexPaths(e.inserts)
             }
-        }, nil)
+        }, completion: nil)
     }
     
 }
 
-private class CollectionViewDataSource: NSObject, UICollectionViewDataSource {
+class CollectionViewDataSource: NSObject, UICollectionViewDataSource {
     
     private let model: SeqViewBridge
 
@@ -56,7 +56,7 @@ private class CollectionViewDataSource: NSObject, UICollectionViewDataSource {
     }
     
     func collectionView(_: UICollectionView, cellForItemAtIndexPath path: NSIndexPath) -> UICollectionViewCell {
-        return model.viewForIndex(path) as UICollectionViewCell
+        return model.viewForIndex(path) as! UICollectionViewCell
     }
 
 }

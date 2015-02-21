@@ -57,7 +57,7 @@ private class KVOSubject<T: AnyObject>: NSObject {
     let keyPath: String
     
     init(_ o: NSObject, _ keyPath: String) {
-        self.subject = Subject(o.valueForKey(keyPath) as T)
+        self.subject = Subject(o.valueForKey(keyPath) as! T)
         self.pointer = o.opaquePointer
         self.keyPath = keyPath
         super.init()
@@ -79,7 +79,7 @@ private class KVOSubject<T: AnyObject>: NSObject {
     }
     
     override func observeValueForKeyPath(keyPath: String, ofObject o: AnyObject, change: [NSObject:AnyObject], context: UnsafeMutablePointer<()>) {
-        subject.update(change[NSKeyValueChangeNewKey] as T, by: self)
+        subject.update(change[NSKeyValueChangeNewKey] as! T, by: self)
     }
 
 }

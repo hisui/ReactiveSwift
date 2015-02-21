@@ -203,7 +203,7 @@ public class Streams {
 
     public class func source<A>(f: Dispatcher<A> -> ()) -> Stream<A> { return source([], f) }
     
-    public class func source<A>(property: [ExecutionProperty], f: Dispatcher<A> -> ()) -> Stream<A> {
+    public class func source<A>(property: [ExecutionProperty], _ f: Dispatcher<A> -> ()) -> Stream<A> {
         return ClosureSource<A>(property, f)
     }
     
@@ -234,7 +234,7 @@ public class Streams {
         return source(property) { $0.flush(f()) }
     }
     
-    public class func lazy<A>(f: @autoclosure () -> A) -> Stream<A> {
+    public class func lazy<A>(f: () -> A) -> Stream<A> {
         return source([.AllowSync]) { $0.flush(f()) }
     }
     

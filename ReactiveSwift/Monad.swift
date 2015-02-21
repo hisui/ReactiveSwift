@@ -6,7 +6,7 @@ infix operator >>| { associativity left precedence 95 }
 public protocol Monad {
     typealias Obj
     func >>| (fa: Self, f: Obj -> Self) -> Self
-    class func pure(a: Obj) -> Self
+    static func pure(a: Obj) -> Self
 }
 
 public func pure<MA: Monad>(a: MA.Obj) -> MA { return MA.pure(a) }

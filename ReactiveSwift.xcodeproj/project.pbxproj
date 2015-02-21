@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2414CFCC1A385A5A006C168F /* NSObject+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFCB1A385A5A006C168F /* NSObject+Subject.swift */; };
+		2414CFCE1A385A61006C168F /* NSNotificationCenter+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFCD1A385A61006C168F /* NSNotificationCenter+Subject.swift */; };
+		2414CFD71A385A6C006C168F /* UIView+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFCF1A385A6C006C168F /* UIView+Subject.swift */; };
+		2414CFD81A385A6C006C168F /* UIControl+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD01A385A6C006C168F /* UIControl+Subject.swift */; };
+		2414CFD91A385A6C006C168F /* UICollectionView+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD11A385A6C006C168F /* UICollectionView+Subject.swift */; };
+		2414CFDA1A385A6C006C168F /* UITableView+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD21A385A6C006C168F /* UITableView+Subject.swift */; };
+		2414CFDB1A385A6C006C168F /* UITextField+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD31A385A6C006C168F /* UITextField+Subject.swift */; };
+		2414CFDD1A385A6C006C168F /* UIButton+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD51A385A6C006C168F /* UIButton+Subject.swift */; };
+		2414CFDE1A385A6C006C168F /* UISlider+Subject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414CFD61A385A6C006C168F /* UISlider+Subject.swift */; };
 		241C887A19DB83E70087E462 /* SeqView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241C887919DB83E70087E462 /* SeqView.swift */; };
 		24410EC119C284F800AD1A0F /* Either.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EB919C284F800AD1A0F /* Either.swift */; };
 		24410EC219C284F800AD1A0F /* Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24410EBA19C284F800AD1A0F /* Box.swift */; };
@@ -39,6 +48,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2414CFCB1A385A5A006C168F /* NSObject+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSObject+Subject.swift"; sourceTree = "<group>"; };
+		2414CFCD1A385A61006C168F /* NSNotificationCenter+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSNotificationCenter+Subject.swift"; sourceTree = "<group>"; };
+		2414CFCF1A385A6C006C168F /* UIView+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD01A385A6C006C168F /* UIControl+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIControl+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD11A385A6C006C168F /* UICollectionView+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UICollectionView+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD21A385A6C006C168F /* UITableView+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UITableView+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD31A385A6C006C168F /* UITextField+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UITextField+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD51A385A6C006C168F /* UIButton+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIButton+Subject.swift"; sourceTree = "<group>"; };
+		2414CFD61A385A6C006C168F /* UISlider+Subject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UISlider+Subject.swift"; sourceTree = "<group>"; };
 		241C886819DAEBDC0087E462 /* ReactiveSwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ReactiveSwift.h; sourceTree = "<group>"; };
 		241C887919DB83E70087E462 /* SeqView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SeqView.swift; sourceTree = "<group>"; };
 		24410EA019C284BC00AD1A0F /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,6 +105,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2414CFCA1A385A2D006C168F /* UIKit+Subject */ = {
+			isa = PBXGroup;
+			children = (
+				2414CFCF1A385A6C006C168F /* UIView+Subject.swift */,
+				2414CFD01A385A6C006C168F /* UIControl+Subject.swift */,
+				2414CFD11A385A6C006C168F /* UICollectionView+Subject.swift */,
+				2414CFD21A385A6C006C168F /* UITableView+Subject.swift */,
+				2414CFD31A385A6C006C168F /* UITextField+Subject.swift */,
+				2414CFD51A385A6C006C168F /* UIButton+Subject.swift */,
+				2414CFD61A385A6C006C168F /* UISlider+Subject.swift */,
+			);
+			name = "UIKit+Subject";
+			sourceTree = "<group>";
+		};
 		241C887B19DB83EE0087E462 /* Subject */ = {
 			isa = PBXGroup;
 			children = (
@@ -128,9 +160,12 @@
 				241C887B19DB83EE0087E462 /* Subject */,
 				24410ECC19C2853600AD1A0F /* Collection */,
 				24410ECB19C2852B00AD1A0F /* Scheduler */,
+				2414CFCA1A385A2D006C168F /* UIKit+Subject */,
 				24410EE119C312F400AD1A0F /* Monad.swift */,
 				24410EBF19C284F800AD1A0F /* Stream.swift */,
 				24410EC019C284F800AD1A0F /* combinators.swift */,
+				2414CFCB1A385A5A006C168F /* NSObject+Subject.swift */,
+				2414CFCD1A385A61006C168F /* NSNotificationCenter+Subject.swift */,
 			);
 			path = ReactiveSwift;
 			sourceTree = "<group>";
@@ -294,16 +329,25 @@
 				2447E59619DD9C2F00113DDC /* SortedSeqView.swift in Sources */,
 				24410EC619C284F800AD1A0F /* fake.swift in Sources */,
 				241C887A19DB83E70087E462 /* SeqView.swift in Sources */,
+				2414CFDA1A385A6C006C168F /* UITableView+Subject.swift in Sources */,
+				2414CFDE1A385A6C006C168F /* UISlider+Subject.swift in Sources */,
 				24410EC119C284F800AD1A0F /* Either.swift in Sources */,
+				2414CFCE1A385A61006C168F /* NSNotificationCenter+Subject.swift in Sources */,
 				24410EC419C284F800AD1A0F /* Scheduler.swift in Sources */,
 				24410EC519C284F800AD1A0F /* gcd.swift in Sources */,
 				24410EC319C284F800AD1A0F /* ArrayDeque.swift in Sources */,
 				24410EC819C284F800AD1A0F /* combinators.swift in Sources */,
+				2414CFD71A385A6C006C168F /* UIView+Subject.swift in Sources */,
+				2414CFDD1A385A6C006C168F /* UIButton+Subject.swift in Sources */,
 				2447E58E19DD19EE00113DDC /* SetView.swift in Sources */,
+				2414CFD91A385A6C006C168F /* UICollectionView+Subject.swift in Sources */,
 				24410EC219C284F800AD1A0F /* Box.swift in Sources */,
 				24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */,
+				2414CFD81A385A6C006C168F /* UIControl+Subject.swift in Sources */,
 				24410EE219C312F400AD1A0F /* Monad.swift in Sources */,
+				2414CFCC1A385A5A006C168F /* NSObject+Subject.swift in Sources */,
 				24410EC719C284F800AD1A0F /* Stream.swift in Sources */,
+				2414CFDB1A385A6C006C168F /* UITextField+Subject.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -420,6 +464,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -435,6 +480,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 			};
 			name = Debug;
@@ -447,6 +493,7 @@
 					iphonesimulator,
 				);
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEAD_CODE_STRIPPING = NO;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -460,6 +507,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 			};
 			name = Release;

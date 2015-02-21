@@ -20,7 +20,7 @@ public extension UIView {
             self.addGestureRecognizer(f(pass, pass.selector))
             return pass
         }
-        return pass.userData as Stream<T>
+        return pass.userData as! Stream<T>
     }
     
     public func swipeGestureSubjectOf(direction: UISwipeGestureRecognizerDirection)
