@@ -233,6 +233,8 @@ public func compact<A>(s: Stream<A?>) -> Stream<A> {
     }
 }
 
+public func + <A>(a: Stream<A>, b: Stream<A>) -> Stream<A> { return concat([a, b]) }
+
 extension Channel {
     public func autoclose() -> Channel<A> { return AutoClosing(self) }
 }

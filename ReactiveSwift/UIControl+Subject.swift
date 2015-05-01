@@ -30,24 +30,6 @@ public extension UIControl {
 
 }
 
-@objc class ClosureObserver: NSObject {
-    
-    private let f: AnyObject -> ()
-    
-    var userData: AnyObject? = nil
-
-    init(_ f: () -> ()) { self.f = { _ in f() } }
-    
-    init<T: AnyObject>(_ f: T -> ()) {
-        self.f = { f($0 as! T) }
-    }
-    
-    @objc func call(sender: AnyObject) { f(sender) }
-    
-    var selector: Selector { return "call:" }
-
-}
-
 func subjectForEvent<T, S: UIControl>(event: UIControlEvents, #from: S
     , key: UnsafePointer<String>
     , #getter:  S -> T
