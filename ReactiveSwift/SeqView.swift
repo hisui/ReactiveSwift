@@ -15,7 +15,7 @@ public class SeqView<E>: SubjectSource<[SeqDiff<E>]>, SequenceType {
     public subscript(i: Int) -> E? { return nil }
     
     public func map<F>(f: E -> F) -> Stream<SeqView<F>> {
-        return Streams.pure(SeqView<F>())
+        return .pure(SeqView<F>())
     }
 
     public func map<F>(f: E -> F, _ context: ExecutionContext) -> SeqView<F> {
@@ -23,11 +23,11 @@ public class SeqView<E>: SubjectSource<[SeqDiff<E>]>, SequenceType {
     }
     
     public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
-        return Streams.pure(SeqView<E>())
+        return .pure(SeqView<E>())
     }
     
     public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
-        return Streams.pure(SeqView<E>())
+        return .pure(SeqView<E>())
     }
 
     public var count: UInt { return 0 }
@@ -175,7 +175,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     override public func bimap<F>(f: E -> F, _ g: F -> E) -> Stream<SeqCollection<F>> {
         return Streams.lazy { SeqCollection<F>(self.raw.map(f)) }.flatMap { (peer: SeqCollection<F>) in
             mix([
-                Streams.pure(peer),
+                .pure(peer),
                 setMappingBetween2(self, b: peer, f: { $0.map { $0.map(f) } }),
                 setMappingBetween2(peer, b: self, f: { $0.map { $0.map(g) } }),
             ])
@@ -186,7 +186,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     override public func sortedBy(lt: (E, E) -> Bool) -> Stream<SeqView<E>> {
         let a = SeqCollection<E>()
         return concat([
-            Streams.pure(a),
+            .pure(a),
             foreach { [weak self] _ in a.assign(self!.raw.sort(lt)) }.nullify()
         ])
     }
@@ -195,7 +195,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
     override public func filterBy(f: E -> Bool) -> Stream<SeqView<E>> {
         let a = SeqCollection<E>()
         return concat([
-            Streams.pure(a),
+            .pure(a),
             foreach { [weak self] _ in a.assign(self!.raw.filter(f)) }.nullify()
         ])
     }

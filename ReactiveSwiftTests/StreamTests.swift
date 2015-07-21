@@ -53,21 +53,21 @@ class StreamTests: XCTestCase {
     }
     
     func testSimple() {
-        XCTAssertEqual(["foo"], toArray(Streams.pure("foo")))
+        XCTAssertEqual(["foo"], toArray(.pure("foo")))
     }
     
     func testCreateStreamFromCertainElements() {
         
-        XCTAssertEqual(["foo"], toArray(Streams.pure("foo"))
+        XCTAssertEqual(["foo"], toArray(.pure("foo"))
             , "`Streams.pure()` returns a stream just with one element.")
         
-        XCTAssertEqual([2, 3, 5], toArray(Streams.args(2, 3, 5))
+        XCTAssertEqual([2, 3, 5], toArray(.args(2, 3, 5))
             , "`Streams.args()` returns a stream whose form is identical to its argument values.")
         
-        XCTAssertEqual(Array<Int>(), toArray(Streams.done())
+        XCTAssertEqual(Array<Int>(), toArray(.done())
             , "`Streams.done()` returns an empty stream.")
         
-        XCTAssertEqual([1, 2, 3], toArray(Streams.range(1 ... 3)))
+        XCTAssertEqual([1, 2, 3], toArray(.range(1 ... 3)))
     }
 
     func testSubscribeCanBeInvokedMultipleTimes() {
@@ -407,8 +407,8 @@ class StreamTests: XCTestCase {
         
         let given: Stream<String> =
         mix([
-            Streams.pure("A"),
-            Streams.pure("B")])
+            .pure("A"),
+            .pure("B")])
         
         for _ in 1 ... 3 {
             let a = toArray(given)
@@ -422,12 +422,11 @@ class StreamTests: XCTestCase {
         
         let given: Stream<Either<String, Int>> =
         race(
-            Streams.pure("A"),
-            Streams.pure( 1 ))
+            .pure("A"),
+            .pure( 1 ))
         
         for _ in 1 ... 3 {
             let a = toArray(given)
-            //XCTAssertTrue([Either.Left(Box("A")), Either.Right(Box(1))] == a)
             if (a.count == 2) {
                 switch (a[0], a[1]) {
                 case (.Left(let l), .Right(let r)):

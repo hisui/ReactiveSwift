@@ -89,10 +89,10 @@ public extension Stream {
     
     public func flatMap<B>(f: A -> Stream<B>) -> Stream<B> { return innerBind({f}) }
     
-    public func map<B>(f: A -> B) -> Stream<B> { return flatMap { Streams.pure(f($0)) } }
+    public func map<B>(f: A -> B) -> Stream<B> { return flatMap { .pure(f($0)) } }
 
     public func filter(predicate: A -> Bool) -> Stream<A> {
-        return flatMap { predicate($0) ? Streams.pure($0): Streams.done() }
+        return flatMap { predicate($0) ? .pure($0): .done() }
     }
 
     public func pack() -> Stream<Packet<A>> {
@@ -137,7 +137,7 @@ public extension Stream {
     
     public func isolated<B>(property: [ExecutionProperty], _ f: Stream<A> -> Stream<B>) -> Stream<B> {
         return flatMap { e in
-            pipe(property) { _ in f(Streams.pure(e)) }
+            pipe(property) { _ in f(.pure(e)) }
         }
     }
 

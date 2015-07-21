@@ -13,10 +13,10 @@ public extension Stream {
             var last: Box<A?> = Box(nil)
             return {
                 switch $0 {
-                case .Left (let e): return Streams.pure((last.raw, e))
+                case .Left (let e): return .pure((last.raw, e))
                 case .Right(let e):
                     last = Box(e)
-                    return Streams.done()
+                    return .done()
                 }
             }
         }
@@ -27,7 +27,7 @@ public extension Stream {
     }
     
     public func throttle(interval: Double) -> Stream<A> {
-        return outerBind {{ Streams.timeout(interval, $0) }}
+        return outerBind {{ .timeout(interval, $0) }}
     }
  
     public func takeWhile(predicate: A -> Bool) -> Stream<A> { return takeWhile { predicate } }
@@ -35,7 +35,7 @@ public extension Stream {
     public func skipWhile(predicate: A -> Bool) -> Stream<A> { return skipWhile { predicate } }
 
     public func take(n: UInt) -> Stream<A> {
-        return n > 0 ? takeWhile { counter( n ) } : Streams.done()
+        return n > 0 ? takeWhile { counter( n ) } : .done()
     }
     
     public func skip(n: UInt) -> Stream<A> {
@@ -53,14 +53,14 @@ public extension Stream {
             return {
                 switch $0 {
                 case .Done:
-                    return Streams.args(.Next(Box(a)), .Done())
+                    return .args(.Next(Box(a)), .Done())
 
                 case .Fail(let x):
-                    return Streams.pure(.Fail(x))
+                    return .pure(.Fail(x))
                     
                 case .Next(let x):
                     a = g(a, x.raw)
-                    return Streams.done()
+                    return .done()
                 }
             }
         })
@@ -72,7 +72,7 @@ public extension Stream {
             case .Fail(let x):
                 return aux(x).pack()
             default:
-                return Streams.pure(e)
+                return .pure(e)
             }
         })
     }
@@ -81,7 +81,7 @@ public extension Stream {
         return race(self, that).merge {
             var count = 0
             return { $0.fold(
-                { o in count == 0 ? Streams.pure(o): Streams.done() },
+                { o in count == 0 ? .pure(o): .done() },
                 { o in
                     ++count
                     return o.onClose { count -= 1 }
@@ -102,14 +102,14 @@ public extension Stream {
     
     public func takeWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
-            during: { Streams.pure(.Next(Box($0))) },
-            follow: { Streams.args(.Next(Box($0)), .Done()) })
+            during: { .pure(.Next(Box($0))) },
+            follow: { .args(.Next(Box($0)), .Done()) })
     }
     
     public func skipWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
-            during: { _ in Streams.done() },
-            follow: { e in Streams.pure(.Next(Box(e))) })
+            during: { _ in .done() },
+            follow: { e in .pure(.Next(Box(e))) })
     }
     
     public func nullify<B>() -> Stream<B> { return filter { _ in false }.map { _ in undefined() } }
@@ -123,17 +123,16 @@ public extension Stream {
             switch e {
             case .Done: return f().pack()
             default:
-                return Streams.pure(e)
+                return .pure(e)
             }
         })
     }
     
     public func closeBy<X>(s: Stream<X>) -> Stream<A> {
         let cut = NSError(domain: "Stream#closeBy", code: 0, userInfo: nil)
-        return mix([self, s.flatMap { _ in Streams.fail(cut) }])
+        return mix([self, s.flatMap { _ in .fail(cut) }])
         .recover { e in
-            e == cut ? Streams.done( ):
-                       Streams.fail(e)
+            e == cut ? .done(): .fail(e)
         }
     }
     
@@ -153,13 +152,13 @@ public extension Streams {
     
 public func flatten<A>(s: Stream<Stream<A>>) -> Stream<A> { return s.flatMap { $0 } }
 
-public func mix<A>(a: [Stream<A>]) -> Stream<A> { return merge(Streams.list(a)) }
+public func mix<A>(a: [Stream<A>]) -> Stream<A> { return merge(.list(a)) }
 
 public func seq<A>(a: [Stream<A>]) -> Stream<[A]> {
-    return a.reduce(Streams.pure([])) { zip($0, $1).map { $0.0 + [$0.1] } }
+    return a.reduce(.pure([])) { zip($0, $1).map { $0.0 + [$0.1] } }
 }
 
-public func concat<A>(a: [Stream<A>]) -> Stream<A> { return flatten(Streams.list(a)) }
+public func concat<A>(a: [Stream<A>]) -> Stream<A> { return flatten(.list(a)) }
 
 public func race<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<Either<A, B>>
 {
@@ -172,10 +171,10 @@ public func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {
         return { e in
             if (last != e) {
                 last  = e
-                return Streams.pure(e)
+                return .pure(e)
             }
             else {
-                return Streams.done()
+                return .done()
             }
         }
     }
@@ -192,8 +191,8 @@ public func combineLatest<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> 
             case .Right(let e): rhs = Box(e)
             }
             return (lhs != nil && rhs != nil
-                ? Streams.pure((lhs!.raw, rhs!.raw))
-                : Streams.done())
+                ? .pure((lhs!.raw, rhs!.raw))
+                : .done())
         }
     }
 }
@@ -207,15 +206,15 @@ public func zip<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
             switch ((queue.head, e)) {
             case ((.Some(.Left(let l)), .Right(let r))):
                 queue.shift()
-                return Streams.pure((l, r))
+                return .pure((l, r))
                 
             case ((.Some(.Right(let r)), .Left(let l))):
                 queue.shift()
-                return Streams.pure((l, r))
+                return .pure((l, r))
                 
             default:
                 queue.push(e)
-                return Streams.done()
+                return .done()
             }
         }
     }
@@ -223,14 +222,7 @@ public func zip<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
 }
 
 public func compact<A>(s: Stream<A?>) -> Stream<A> {
-    return s.flatMap { e in
-        if let o = e {
-            return Streams.pure(o)
-        }
-        else {
-            return Streams.done( )
-        }
-    }
+    return s.flatMap { $0.map(Streams.pure) ?? .done() }
 }
 
 public func + <A>(a: Stream<A>, b: Stream<A>) -> Stream<A> { return concat([a, b]) }

@@ -8,7 +8,7 @@ Sample Code
 
 From a value.
 ```swift
-let s: Stream<String> = Streams.pure("foo")
+let s: Stream<String> = .pure("foo")
 s.subscrible { (e: Packet<String>) in
   if let o = e.value { println(o) } // ==> "foo"
 }
@@ -16,7 +16,7 @@ s.subscrible { (e: Packet<String>) in
 
 From multiple values.
 ```swift
-let s: Stream<Int> = Streams.list([2, 3, 5])
+let s: Stream<Int> = .list([2, 3, 5])
 s.subscrible { (e: Packet<Int>) in
   if let o = e.value { println(o) } // ==> 2, 3, 5 (in repetition)
 }
@@ -26,7 +26,7 @@ s.subscrible { (e: Packet<Int>) in
 
 ###### `Stream<>#map` - receiving/transforming respectively the values of a stream with no effect to the stream itself
 ```swift
-let a: Stream<String> = Streams.args("ObjC", "Swift")
+let a: Stream<String> = .args("ObjC", "Swift")
 let b: Stream<Double> = a.map { $0.utf16Count * 2.0 }
 
 b.subscribe { (e: Packet<Double>) in
@@ -36,10 +36,10 @@ b.subscribe { (e: Packet<Double>) in
 
 ###### `Stream<>#flatMap` - it works similarly to `map` but also affects the behavior of the resulted stream
 ```swift
-let s: Stream<String> = Streams.list(["f o o", "b a r"])
+let s: Stream<String> = .list(["f o o", "b a r"])
 
 s.flatMap { (e: Packet<String>) in
-  Streams.list(e.componentsSeparatedByString(" "))
+  .list(e.componentsSeparatedByString(" "))
 }
 .subscribe { (e: Packet<String>) in
   if let o = e.value { println(o) } // ==> "f", "o", "o", "b", "a", "r"
@@ -48,8 +48,8 @@ s.flatMap { (e: Packet<String>) in
 
 ###### `mix` - interleaves the given streams(of the same type) to one stream
 ```swift
-let a: Stream<String> = Streams.pure("foo")
-let b: Stream<String> = Streams.list("bar")
+let a: Stream<String> = .pure("foo")
+let b: Stream<String> = .list("bar")
 let c: Stream<String> = mix([a, b])
 
 c.subscribe { (e: Packet<String>) in

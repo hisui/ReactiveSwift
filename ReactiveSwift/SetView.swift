@@ -11,7 +11,7 @@ public class SetView<E: Hashable>: SubjectSource<SetDiff<E>> {
     public subscript(i: Int) -> E? { return nil }
     
     public func map<F>(f: E -> F) -> Stream<SetView<F>> {
-        return Streams.pure(SetView<F>())
+        return .pure(SetView<F>())
     }
     
     public func map<F>(f: E -> F, _ context: ExecutionContext) -> SetView<F> {
