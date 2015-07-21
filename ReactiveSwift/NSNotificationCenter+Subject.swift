@@ -4,9 +4,9 @@ import Foundation
 
 public extension NSNotificationCenter {
 
-    public func streamOfEvent(name: String) -> Stream<NSNotification> {
+    public func streamOfEvent(name: String, _ object: AnyObject? = nil) -> Stream<NSNotification> {
         return Streams.source { chan in
-            var observer: NotificationObserver? = NotificationObserver(self, name) {
+            var observer: NotificationObserver? = NotificationObserver(self, name, object) {
                 chan.emitValue($0)
             }
             chan.setCloseHandler {
@@ -24,10 +24,10 @@ class NotificationObserver {
     private let subject: NSNotificationCenter
     private let handler: NSNotification -> ()
     
-    init(_ subject: NSNotificationCenter?, _ name: String, _ handler: NSNotification -> ()) {
+    init(_ subject: NSNotificationCenter?, _ name: String, _ object: AnyObject?, _ handler: NSNotification -> ()) {
         self.handler = handler
         self.subject = subject ?? NSNotificationCenter.defaultCenter()
-        self.subject.addObserver(self, selector: "notify:", name: name, object: nil)
+        self.subject.addObserver(self, selector: "notify:", name: name, object: object)
     }
 
     deinit {

@@ -3,7 +3,7 @@
 import Foundation
 
 /// A composable object which represents an event stream where multiple events are flowing.
-public class Stream<A> {
+public class Stream<A>: Streams {
 
     public func subscribe(f: Packet<A> -> ()) { return open().subscribe(f) }
 

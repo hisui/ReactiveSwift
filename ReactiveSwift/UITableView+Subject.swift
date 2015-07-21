@@ -72,7 +72,7 @@ private class TableViewSelectionSubject<T>: SetCollection<NSIndexPath> {
         self.table = table
         super.init()
         
-        observer = NotificationObserver(nil, UITableViewSelectionDidChangeNotification)
+        observer = NotificationObserver(nil, UITableViewSelectionDidChangeNotification, nil)
         { [weak self] e in
             if (e.object === self?.table) {
                 self!.assign(self!.table.indexPathsForSelectedRows ?? [], sender: table)
