@@ -68,7 +68,7 @@ public extension UIView {
 }
 
 @objc private class SimulteniousRecognizingEnabler: NSObject, UIGestureRecognizerDelegate {
-    func gestureRecognizer(_: UIGestureRecognizer, shouldRecognizeSimultaneouslyWithGestureRecognizer _: UIGestureRecognizer) -> Bool {
+    @objc func gestureRecognizer(_: UIGestureRecognizer, shouldRecognizeSimultaneouslyWithGestureRecognizer _: UIGestureRecognizer) -> Bool {
         return true
     }
 }

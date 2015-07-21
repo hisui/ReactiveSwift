@@ -2,18 +2,18 @@
 
 public enum Either<L, R> {
     
-    case  Left(Box<L>), Right(Box<R>)
+    case Left(L), Right(R)
     
     public func fold<V>(lhs: L -> V, _ rhs: R -> V) -> V {
         switch self {
-        case .Left (let box): return lhs(+box)
-        case .Right(let box): return rhs(+box)
+        case .Left (let e): return lhs(e)
+        case .Right(let e): return rhs(e)
         }
     }
     
     public var right: R? {
         switch self {
-        case .Right(let box): return +box
+        case .Right(let e): return e
         default:
             return nil
         }

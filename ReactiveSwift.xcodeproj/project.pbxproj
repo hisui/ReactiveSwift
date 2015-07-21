@@ -34,6 +34,7 @@
 		2447E59619DD9C2F00113DDC /* SortedSeqView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2447E59519DD9C2F00113DDC /* SortedSeqView.swift */; };
 		2447E59819DD9CBB00113DDC /* SortedSetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2447E59719DD9CBB00113DDC /* SortedSetView.swift */; };
 		24F1922A19C723DB00AA85E3 /* SubjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1922919C723DB00AA85E3 /* SubjectTests.swift */; };
+		24F44D6E1A9AD268002073F1 /* ExtendedField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F44D6D1A9AD268002073F1 /* ExtendedField.swift */; };
 		24FC5E2519DBE503000D1DD1 /* SeqViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24FC5E2419DBE503000D1DD1 /* SeqViewTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -83,6 +84,7 @@
 		24A0BBFD19D8023F0043C6A7 /* Podfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Podfile; sourceTree = "<group>"; };
 		24A0BBFE19D8023F0043C6A7 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		24F1922919C723DB00AA85E3 /* SubjectTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubjectTests.swift; sourceTree = "<group>"; };
+		24F44D6D1A9AD268002073F1 /* ExtendedField.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExtendedField.swift; sourceTree = "<group>"; };
 		24FC5E2419DBE503000D1DD1 /* SeqViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SeqViewTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -215,6 +217,7 @@
 				24410EB919C284F800AD1A0F /* Either.swift */,
 				24410EBA19C284F800AD1A0F /* Box.swift */,
 				24410EBB19C284F800AD1A0F /* ArrayDeque.swift */,
+				24F44D6D1A9AD268002073F1 /* ExtendedField.swift */,
 			);
 			name = Collection;
 			sourceTree = "<group>";
@@ -274,6 +277,8 @@
 		24410E9719C284BC00AD1A0F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftMigration = 0700;
+				LastSwiftUpdateCheck = 0700;
 				LastUpgradeCheck = 0610;
 				ORGANIZATIONNAME = segfault.jp;
 				TargetAttributes = {
@@ -344,6 +349,7 @@
 				24410EC219C284F800AD1A0F /* Box.swift in Sources */,
 				24410ED419C2AC4900AD1A0F /* Subject.swift in Sources */,
 				2414CFD81A385A6C006C168F /* UIControl+Subject.swift in Sources */,
+				24F44D6E1A9AD268002073F1 /* ExtendedField.swift in Sources */,
 				24410EE219C312F400AD1A0F /* Monad.swift in Sources */,
 				2414CFCC1A385A5A006C168F /* NSObject+Subject.swift in Sources */,
 				24410EC719C284F800AD1A0F /* Stream.swift in Sources */,

@@ -30,7 +30,7 @@ public class SetCollection<E: Hashable>: SetView<E> {
     
     private var raw: [E: ()]
     
-    public init(a: [E] = []) { self.raw = newDictionary(a, ()) }
+    public init(a: [E] = []) { self.raw = newDictionary(a, value: ()) }
     
     override public var firstValue: Box<UpdateDiff> {
         return Box(SetDiff(Array(raw.keys)))
@@ -55,7 +55,7 @@ public class SetCollection<E: Hashable>: SetView<E> {
     public func insert(e: E, sender: AnyObject? = nil) { update(SetDiff([e], []), sender) }
     
     public func assign(a: [E], sender: AnyObject? = nil) {
-        let tmp = newDictionary(a, ())
+        let tmp = newDictionary(a, value: ())
         var delete = [E]()
         var insert = [E]()
         for e in tmp.keys { if !raw.containsKey(e) { insert.append(e) } }

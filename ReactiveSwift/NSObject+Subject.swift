@@ -5,7 +5,7 @@ import Foundation
 public extension NSObject {
     
     public func setAdditionalField(key: UnsafePointer<Void>, _ o: AnyObject?) {
-        objc_setAssociatedObject(self, key, o, objc_AssociationPolicy(OBJC_ASSOCIATION_RETAIN_NONATOMIC))
+        objc_setAssociatedObject(self, key, o, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
     
     public func getAdditionalField(key: UnsafePointer<Void>) -> AnyObject? {
@@ -78,8 +78,8 @@ private class KVOSubject<T: AnyObject>: NSObject {
             .takeUnretainedValue().removeObserver(self, forKeyPath: keyPath)
     }
     
-    override func observeValueForKeyPath(keyPath: String, ofObject o: AnyObject, change: [NSObject:AnyObject], context: UnsafeMutablePointer<()>) {
-        subject.update(change[NSKeyValueChangeNewKey] as! T, by: self)
+    override func observeValueForKeyPath(keyPath: String?, ofObject o: AnyObject?, change: [String:AnyObject]?, context: UnsafeMutablePointer<()>) {
+        subject.update(change![NSKeyValueChangeNewKey]! as! T, by: self)
     }
 
 }

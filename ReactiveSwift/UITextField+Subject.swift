@@ -6,9 +6,9 @@ public extension UITextField {
     
     public var textSubject: Subject<String> {
         return subjectForEvent(.EditingChanged, from: self
-            , &textSubjectKey
-            , getter: { $0.text }
-            , setter: { $0.text = $1 }
+            , key: &textSubjectKey
+            , getter: { $0.text ?? "" }
+            , setter: { $0.text  = $1 }
         )
     }
     

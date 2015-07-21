@@ -48,10 +48,10 @@ public extension UIControl {
 
 }
 
-func subjectForEvent<T, S: UIControl>(event: UIControlEvents, #from: S
+func subjectForEvent<T, S: UIControl>(event: UIControlEvents, from: S
     , key: UnsafePointer<String>
-    , #getter:  S -> T
-    , #setter: (S, T) -> ()) -> Subject<T>
+    , getter:  S -> T
+    , setter: (S, T) -> ()) -> Subject<T>
 {
     return from.getAdditionalFieldOrUpdate(key) {
         let subj = Subject(getter(from))

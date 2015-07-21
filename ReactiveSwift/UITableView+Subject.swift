@@ -48,8 +48,8 @@ public extension UITableView {
         
     }
     
-    private func update<E>(update: SeqView<E>.UpdateType, _ guard: AnyObject) {
-        if update.sender === guard {
+    private func update<E>(update: SeqView<E>.UpdateType, _ `guard`: AnyObject) {
+        if update.sender === `guard` {
             return
         }
         beginUpdates()
@@ -75,7 +75,7 @@ private class TableViewSelectionSubject<T>: SetCollection<NSIndexPath> {
         observer = NotificationObserver(nil, UITableViewSelectionDidChangeNotification)
         { [weak self] e in
             if (e.object === self?.table) {
-                self!.assign((self!.table.indexPathsForSelectedRows() as? [NSIndexPath]) ?? [], sender: table)
+                self!.assign(self!.table.indexPathsForSelectedRows ?? [], sender: table)
             }
         }
     }

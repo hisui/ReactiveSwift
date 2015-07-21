@@ -32,7 +32,7 @@ public extension UICollectionView {
             .nullify()
     }
     
-    private func update<E>(update: SeqView<E>.UpdateType, _ guard: AnyObject) {
+    private func update<E>(update: SeqView<E>.UpdateType, _ `guard`: AnyObject) {
         performBatchUpdates({
             for e in update.detail {
                 self.deleteItemsAtIndexPaths(e.deletes)

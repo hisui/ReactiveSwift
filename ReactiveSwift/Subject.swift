@@ -31,8 +31,8 @@ public class Subject<A>: SubjectSource<A> {
 
     public func bimap<B>(f: A -> B, _ g: B -> A, _ context: ExecutionContext) -> Subject<B> {
         let peer = Subject<B>(f(last))
-        setMappingBetween2(self, peer, f, context)
-        setMappingBetween2(peer, self, g, context)
+        setMappingBetween2(self, b: peer, f: f, context: context)
+        setMappingBetween2(peer, b: self, f: g, context: context)
         return peer
     }
 
@@ -89,7 +89,7 @@ public protocol Mergeable {
 }
 
 func setMappingBetween2<A, B>(a: SubjectSource<A>, b: SubjectSource<B>, f: A -> B, context: ExecutionContext) {
-    (setMappingBetween2(a, b, f) as Stream<()>).open(context)
+    (setMappingBetween2(a, b: b, f: f) as Stream<()>).open(context)
 }
 
 // TODO fixes memory leak

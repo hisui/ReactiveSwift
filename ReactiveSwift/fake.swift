@@ -12,7 +12,7 @@ public class FakePID: PID {
 
 }
 
-public class FakeExecutionContext: ExecutionContext, Printable {
+public class FakeExecutionContext: ExecutionContext, CustomStringConvertible {
 
     private let executor: FakeExecutor
     private let synch: Bool
@@ -79,7 +79,7 @@ public class FakeExecutor {
     
     public var numberOfRunningContexts: Int { get { return count } }
 
-    public func newContext(_ name: String = __FUNCTION__) -> ExecutionContext {
+    public func newContext(name: String = __FUNCTION__) -> ExecutionContext {
         return newContext([], nil, name)
     }
 
@@ -108,7 +108,7 @@ public class FakeExecutor {
         while cond() {
             var a = Array<Int>()
             var t = Double.infinity
-            for (i, e) in enumerate(tasks) {
+            for (i, e) in tasks.enumerate() {
                 if (e.time <= min(time, t)) {
                     if (t > e.time) {
                         t = e.time
@@ -125,7 +125,7 @@ public class FakeExecutor {
                 n++
                 tasks[i].task()
             }
-            for i in reverse(a) { tasks.removeAtIndex(i) }
+            for i in Array(a.reverse()) { tasks.removeAtIndex(i) }
         }
         currentTime = time
         return n > 0

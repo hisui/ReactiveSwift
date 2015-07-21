@@ -55,7 +55,7 @@ public enum Packet<A> {
         switch self {
         case let .Next(x): return .Next(x.map(f))
         case let .Fail(x): return .Fail(x)
-        case let .Done( ): return .Done( )
+        case     .Done( ): return .Done( )
         }
     }
     
@@ -249,13 +249,13 @@ public class Streams {
 
     public class func args<A>(a: A...) -> Stream<A> { return list(a) }
 
-    public class func repeat<A>(value: A, _ delay: Double) -> Stream<A> {
+    public class func `repeat`<A>(value: A, _ delay: Double) -> Stream<A> {
         return Streams.source { chan in
             var holder: A? = value
             chan.setCloseHandler {
                 holder = nil
             }
-            repeatWhile(chan.calleeContext, delay) {
+            repeatWhile(chan.calleeContext, delay: delay) {
                 if let e = holder {
                     chan.emitIfOpen(.Next(Box(e)))
                 }
@@ -302,7 +302,7 @@ private func pipe<A>(property: [ExecutionProperty], f: Dispatcher<A> -> Stream<A
 
 private func repeatWhile(context: ExecutionContext, delay: Double, f: () -> Bool) {
     context.schedule(nil, delay) {
-        if f() { repeatWhile(context, delay, f) }
+        if f() { repeatWhile(context, delay: delay, f: f) }
     }
 }
 
@@ -420,7 +420,7 @@ public class ForeignSource<A>: Source<A> {
     public final func emitValue(a: A) { emit(.Next(Box(a))) }
     
     public final func emit(a: Packet<A>) {
-        // TODO
+        // TODO close
         for chan in channels {
             chan.calleeContext.schedule(nil, 0) {
                 chan.emitIfOpen(a)

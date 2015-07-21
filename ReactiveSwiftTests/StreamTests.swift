@@ -22,7 +22,7 @@ class StreamTests: XCTestCase {
         executor!.consumeAll()
     }
 
-    func newContext(_ property: [ExecutionProperty] = [], _ name: String = __FUNCTION__) -> ExecutionContext {
+    func newContext(property: [ExecutionProperty] = [], _ name: String = __FUNCTION__) -> ExecutionContext {
         let context = executor!.newContext(property, nil, name)
         contexts.append(context)
         return context
@@ -164,7 +164,7 @@ class StreamTests: XCTestCase {
             Streams.pure("B"),
             Streams.pure("C")])
         
-        for i in 1 ... 3 {
+        for _ in 1 ... 3 {
             XCTAssertEqual([["A", "B", "C"]], toArray(given))
         }
     }
@@ -200,7 +200,7 @@ class StreamTests: XCTestCase {
     
     func testIsolation() {
         
-        let f = { (e: String, ctx: ExecutionContext) in "\(e):\((ctx as FakeExecutionContext).pid)" }
+        let f = { (e: String, ctx: ExecutionContext) in "\(e):\((ctx as! FakeExecutionContext).pid)" }
 
         let given = (Streams.args("A", "B", "C")
             .zipWithContext().map(f)
@@ -212,14 +212,14 @@ class StreamTests: XCTestCase {
             .isolated("iso3") { $0.zipWithContext().map(f) }
             .zipWithContext().map(f))
         
-        for i in 1 ... 3 {
+        for _ in 1 ... 3 {
             XCTAssertEqual(["A", "B", "C"].map { "\($0):main:iso1:iso2:iso1:iso3:main" }, toArray(given))
         }
     }
     
     func testFailsAndRecover() {
         
-        let error = NSError()
+        let error = NSError(domain: "test", code: 0, userInfo: nil)
         
         XCTAssertEqual([error], toArray(Streams.fail(error).recover { Streams.pure($0) }))
     }
@@ -296,7 +296,7 @@ class StreamTests: XCTestCase {
         var value: String? = nil
         var count: Int     = 0
         
-        let chan = Streams.repeat("A", 2).open(newContext())
+        let chan = Streams.`repeat`("A", 2).open(newContext())
         chan.subscribe {
             value = $0.value
             count++
@@ -410,7 +410,7 @@ class StreamTests: XCTestCase {
             Streams.pure("A"),
             Streams.pure("B")])
         
-        for i in 1 ... 3 {
+        for _ in 1 ... 3 {
             let a = toArray(given)
             executor?.consumeAll()
             XCTAssertTrue(a == ["A", "B"] || a == ["B", "A"])
@@ -425,17 +425,18 @@ class StreamTests: XCTestCase {
             Streams.pure("A"),
             Streams.pure( 1 ))
         
-        for i in 1 ... 3 {
+        for _ in 1 ... 3 {
             let a = toArray(given)
+            //XCTAssertTrue([Either.Left(Box("A")), Either.Right(Box(1))] == a)
             if (a.count == 2) {
                 switch (a[0], a[1]) {
                 case (.Left(let l), .Right(let r)):
-                    XCTAssertEqual(l.raw, "A")
-                    XCTAssertEqual(r.raw,  1 )
+                    XCTAssertEqual(l, "A")
+                    XCTAssertEqual(r,  1 )
                     
                 case (.Right(let r), .Left(let l)):
-                    XCTAssertEqual(l.raw, "A")
-                    XCTAssertEqual(r.raw,  1 )
+                    XCTAssertEqual(l, "A")
+                    XCTAssertEqual(r,  1 )
                     
                 default:
                     XCTFail("unreachable")

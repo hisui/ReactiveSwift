@@ -117,14 +117,14 @@ public class MutableSeqView<E>: SeqView<E> {
     }
 
     public func removeFirst(sender: AnyObject? = nil, f: E -> Bool) {
-        for (i, e) in enumerate(self) { if f(e) {
+        for (i, e) in self.enumerate() { if f(e) {
             removeAt(i, sender: sender)
             break
         }}
     }
     
     public func updateFirst(o: E, sender: AnyObject? = nil, f: E -> Bool) -> Bool {
-        for (i, e) in enumerate(self) { if f(e) {
+        for (i, e) in self.enumerate() { if f(e) {
             self[i] = o
             return true
         }}
@@ -167,8 +167,8 @@ public class SeqCollection<E>: MutableSeqView<E> {
     // deprecated
     override public func bimap<F>(f: E -> F, _ g: F -> E, _ context: ExecutionContext) -> SeqCollection<F> {
         let peer = SeqCollection<F>(raw.map(f))
-        setMappingBetween2(self, peer, { $0.map { $0.map(f) } }, context)
-        setMappingBetween2(peer, self, { $0.map { $0.map(g) } }, context)
+        setMappingBetween2(self, b: peer, f: { $0.map { $0.map(f) } }, context: context)
+        setMappingBetween2(peer, b: self, f: { $0.map { $0.map(g) } }, context: context)
         return peer
     }
     
@@ -176,8 +176,8 @@ public class SeqCollection<E>: MutableSeqView<E> {
         return Streams.lazy { SeqCollection<F>(self.raw.map(f)) }.flatMap { (peer: SeqCollection<F>) in
             mix([
                 Streams.pure(peer),
-                setMappingBetween2(self, peer, { $0.map { $0.map(f) } }),
-                setMappingBetween2(peer, self, { $0.map { $0.map(g) } }),
+                setMappingBetween2(self, b: peer, f: { $0.map { $0.map(f) } }),
+                setMappingBetween2(peer, b: self, f: { $0.map { $0.map(g) } }),
             ])
         }
     }
@@ -187,7 +187,7 @@ public class SeqCollection<E>: MutableSeqView<E> {
         let a = SeqCollection<E>()
         return concat([
             Streams.pure(a),
-            foreach { [weak self] _ in a.assign(sorted(self!.raw, lt)) }.nullify()
+            foreach { [weak self] _ in a.assign(self!.raw.sort(lt)) }.nullify()
         ])
     }
     

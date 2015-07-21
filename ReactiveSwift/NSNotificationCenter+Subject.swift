@@ -10,7 +10,9 @@ public extension NSNotificationCenter {
                 chan.emitValue($0)
             }
             chan.setCloseHandler {
-                observer = nil
+                if (observer != nil) {
+                    observer  = nil
+                }
             }
         }
     }

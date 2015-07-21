@@ -80,7 +80,7 @@ public class ArrayDeque<A> {
     private func drainTo(inout o: [A?]) {
         var i = 0
         var j = base
-        var n = size
+        let n = size
         while i < n {
             o[i++] = dest[j]
             j += 1

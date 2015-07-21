@@ -13,13 +13,13 @@ public func pure<MA: Monad>(a: MA.Obj) -> MA { return MA.pure(a) }
 
 extension Either: Monad {
     public typealias Obj = R
-    public static func pure(a: R) -> Either<L, R> { return .Right(Box(a)) }
+    public static func pure(a: R) -> Either<L, R> { return .Right(a) }
 }
 
 public func >>| <L, A, B>(ma: Either<L, A>, f: A -> Either<L, B>) -> Either<L, B> {
     switch ma {
-    case .Left (let box): return .Left(box)
-    case .Right(let box): return f(+box)
+    case .Left (let e): return .Left(e)
+    case .Right(let e): return f(e)
     }
 }
 
@@ -32,13 +32,13 @@ public func >>| <A, B>(ma: Packet<A>, f: A -> Packet<B>) -> Packet<B> {
     switch ma {
     case let .Next(x): return f(+x)
     case let .Fail(x): return .Fail(x)
-    case let .Done   : return .Done( )
+    case     .Done( ): return .Done( )
     }
 }
 
 public func >>| <A, B>(ma: A?, f: A -> B?) -> B? {
     switch ma {
     case let .Some(a): return f(a)
-    case let .None( ): return .None
+    case     .None( ): return .None
     }
 }

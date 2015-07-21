@@ -79,7 +79,7 @@ private struct GCDExecutionContextConfig {
                 o.queue = pid
                 
             case .Actor(let pid):
-                println("Unsupported PID type :: `\(pid)`")
+                print("Unsupported PID type :: `\(pid)`")
                 abort()
             }
         }

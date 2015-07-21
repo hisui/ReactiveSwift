@@ -6,7 +6,7 @@ public extension UISlider {
     
     public var valueSubject: Subject<Float> {
         return subjectForEvent(.ValueChanged, from: self
-            , &valueSubjectKey
+            , key: &valueSubjectKey
             , getter: { $0.value }
             , setter: { $0.value = $1 }
         )

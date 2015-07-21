@@ -5,7 +5,7 @@ import Foundation
 public extension Stream {
 
     public func delay(delay: Double) -> Stream<A> {
-        return flatMap { Streams.repeat($0, delay).take(1) }
+        return flatMap { Streams.`repeat`($0, delay).take(1) }
     }
     
     public func sample<B>(tick: Stream<B>) -> Stream<(A?, B)> {
@@ -13,9 +13,9 @@ public extension Stream {
             var last: Box<A?> = Box(nil)
             return {
                 switch $0 {
-                case .Left (let box): return Streams.pure((last.raw, box.raw))
-                case .Right(let box):
-                    last = Box(+box)
+                case .Left (let e): return Streams.pure((last.raw, e))
+                case .Right(let e):
+                    last = Box(e)
                     return Streams.done()
                 }
             }
@@ -23,7 +23,7 @@ public extension Stream {
     }
     
     public func sample(interval: Double) -> Stream<A?> {
-        return sample(Streams.repeat((), interval) ).map { $0.0 }
+        return sample(Streams.`repeat`((), interval) ).map { $0.0 }
     }
     
     public func throttle(interval: Double) -> Stream<A> {
@@ -49,7 +49,7 @@ public extension Stream {
     public func fold<B>(initial: B, _ f: () -> (B, A) -> B) -> Stream<B> {
         return unpack(pack().innerBind {
             var a = initial
-            var g = f()
+            let g = f()
             return {
                 switch $0 {
                 case .Done:
@@ -129,7 +129,7 @@ public extension Stream {
     }
     
     public func closeBy<X>(s: Stream<X>) -> Stream<A> {
-        let cut = NSError()
+        let cut = NSError(domain: "Stream#closeBy", code: 0, userInfo: nil)
         return mix([self, s.flatMap { _ in Streams.fail(cut) }])
         .recover { e in
             e == cut ? Streams.done( ):
@@ -146,7 +146,7 @@ private func counter<X>(var n: UInt) -> (X -> Bool) { return { _ in --n == 0 } }
 public extension Streams {
     
     public class func timeout<A>(delay: Double, _ value: A) -> Stream<A> {
-        return repeat(value, delay).take(1)
+        return `repeat`(value, delay).take(1)
     }
 
 }
@@ -161,9 +161,9 @@ public func seq<A>(a: [Stream<A>]) -> Stream<[A]> {
 
 public func concat<A>(a: [Stream<A>]) -> Stream<A> { return flatten(Streams.list(a)) }
 
-public func race<A, B>(a: Stream<A>, b: Stream<B>) -> Stream<Either<A, B>>
+public func race<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<Either<A, B>>
 {
-    return mix([a.map { .Left(Box($0)) }, b.map { .Right(Box($0)) }])
+    return mix([a.map { .Left($0) }, b.map { .Right($0) }])
 }
 
 public func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {
@@ -182,14 +182,14 @@ public func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {
 }
 
 // TODO HList
-public func combineLatest<A, B>(a: Stream<A>, b: Stream<B>) -> Stream<(A, B)> {
+public func combineLatest<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
     return race(a, b).innerBind {
         var lhs: Box<A>? = nil
         var rhs: Box<B>? = nil
         return {
             switch $0 {
-            case .Left (let box): lhs = box
-            case .Right(let box): rhs = box
+            case .Left (let e): lhs = Box(e)
+            case .Right(let e): rhs = Box(e)
             }
             return (lhs != nil && rhs != nil
                 ? Streams.pure((lhs!.raw, rhs!.raw))
@@ -199,7 +199,7 @@ public func combineLatest<A, B>(a: Stream<A>, b: Stream<B>) -> Stream<(A, B)> {
 }
 
 // TODO done, HList
-public func zip<A, B>(a: Stream<A>, b: Stream<B>) -> Stream<(A, B)> {
+public func zip<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
     // let exit = NSError()
     return race(a /* .fails(exit) */, b /* .fails(exit) */).innerBind {
         let queue = ArrayDeque<Either<A, B>>()
@@ -207,11 +207,11 @@ public func zip<A, B>(a: Stream<A>, b: Stream<B>) -> Stream<(A, B)> {
             switch ((queue.head, e)) {
             case ((.Some(.Left(let l)), .Right(let r))):
                 queue.shift()
-                return Streams.pure((l.raw, r.raw))
+                return Streams.pure((l, r))
                 
             case ((.Some(.Right(let r)), .Left(let l))):
                 queue.shift()
-                return Streams.pure((l.raw, r.raw))
+                return Streams.pure((l, r))
                 
             default:
                 queue.push(e)
@@ -234,7 +234,15 @@ public func compact<A>(s: Stream<A?>) -> Stream<A> {
 }
 
 extension Channel {
-    public func autoclose() -> Channel<A> { return AutoClosing(self) }
+    
+    public func autoclose() -> Channel<A> {
+        return AutoClosing(self)
+    }
+    
+    public func publish() -> Stream<A> {
+        return PublishSource(autoclose())
+    }
+    
 }
 
 private class AutoClosing<A>: Channel<A> {
@@ -252,6 +260,18 @@ private class AutoClosing<A>: Channel<A> {
     override func close() {
         origin?.close()
         origin = nil
+    }
+    
+}
+
+private class PublishSource<A>: ForeignSource<A> {
+    
+    private var channel: Channel<A>!
+    
+    required init(_ channel: Channel<A>) {
+        super.init()
+        self.channel = channel
+        self.channel.subscribe(emit)
     }
     
 }
