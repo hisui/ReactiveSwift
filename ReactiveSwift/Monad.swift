@@ -25,14 +25,14 @@ public func >>| <L, A, B>(ma: Either<L, A>, f: A -> Either<L, B>) -> Either<L, B
 
 extension Packet: Monad {
     typealias Obj = A
-    public static func pure(a: A) -> Packet<A> { return .Next(Box(a)) }
+    public static func pure(a: A) -> Packet<A> { return .Next(a) }
 }
 
 public func >>| <A, B>(ma: Packet<A>, f: A -> Packet<B>) -> Packet<B> {
     switch ma {
-    case let .Next(x): return f(+x)
+    case let .Next(e): return f(e)
     case let .Fail(x): return .Fail(x)
-    case     .Done( ): return .Done( )
+    case     .Done   : return .Done
     }
 }
 

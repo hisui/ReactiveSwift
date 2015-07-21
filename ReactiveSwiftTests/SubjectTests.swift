@@ -10,7 +10,7 @@ class SubjectTests: XCTestCase {
         let exec = FakeExecutor()
         let subj = Subject(1)
         
-        var received1: Packet<Int> = .Done()
+        var received1: Packet<Int> = .Done
         let chan1 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received1 = $0 }}
         
         XCTAssertEqual(1, subj.subscribers)
@@ -20,7 +20,7 @@ class SubjectTests: XCTestCase {
         
         XCTAssertTrue(received1.value == 1)
         
-        var received2: Packet<Int> = .Done()
+        var received2: Packet<Int> = .Done
         let chan2 = subj.unwrap.open(exec.newContext()) { $0.subscribe { received2 = $0 }}
         
         XCTAssertEqual(2, subj.subscribers)

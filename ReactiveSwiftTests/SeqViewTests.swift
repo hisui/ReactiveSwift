@@ -10,7 +10,7 @@ class SeqViewTests: XCTestCase {
         let exec = FakeExecutor()
         let subj = SeqCollection([1, 2, 3])
         
-        var received: Packet<[SeqDiff<Int>]> = .Done()
+        var received: Packet<[SeqDiff<Int>]> = .Done
         let chan = subj.unwrap.open(exec.newContext()) { $0.subscribe { received = $0 }}
         
         // TODO It should be 0..

@@ -10,12 +10,12 @@ public extension Stream {
     
     public func sample<B>(tick: Stream<B>) -> Stream<(A?, B)> {
         return race(tick, self).innerBind {
-            var last: Box<A?> = Box(nil)
+            var last: A? = nil
             return {
                 switch $0 {
-                case .Left (let e): return .pure((last.raw, e))
+                case .Left (let e): return .pure((last, e))
                 case .Right(let e):
-                    last = Box(e)
+                    last = e
                     return .done()
                 }
             }
@@ -53,13 +53,13 @@ public extension Stream {
             return {
                 switch $0 {
                 case .Done:
-                    return .args(.Next(Box(a)), .Done())
+                    return .args(.Next(a), .Done)
 
                 case .Fail(let x):
                     return .pure(.Fail(x))
                     
-                case .Next(let x):
-                    a = g(a, x.raw)
+                case .Next(let e):
+                    a = g(a, e)
                     return .done()
                 }
             }
@@ -102,14 +102,14 @@ public extension Stream {
     
     public func takeWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
-            during: { .pure(.Next(Box($0))) },
-            follow: { .args(.Next(Box($0)), .Done()) })
+            during: { .pure(.Next($0)) },
+            follow: { .args(.Next($0), .Done) })
     }
     
     public func skipWhile(predicate: () -> A -> Bool) -> Stream<A> {
         return switchIf(predicate,
             during: { _ in .done() },
-            follow: { e in .pure(.Next(Box(e))) })
+            follow: { e in .pure(.Next(e)) })
     }
     
     public func nullify<B>() -> Stream<B> { return filter { _ in false }.map { _ in undefined() } }
@@ -183,16 +183,20 @@ public func distinct<A: Equatable>(s: Stream<A>) -> Stream<A> {
 // TODO HList
 public func combineLatest<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
     return race(a, b).innerBind {
-        var lhs: Box<A>? = nil
-        var rhs: Box<B>? = nil
+        var lhs: A? = nil
+        var rhs: B? = nil
         return {
             switch $0 {
-            case .Left (let e): lhs = Box(e)
-            case .Right(let e): rhs = Box(e)
+            case .Left (let e): lhs = e
+            case .Right(let e): rhs = e
             }
-            return (lhs != nil && rhs != nil
-                ? .pure((lhs!.raw, rhs!.raw))
-                : .done())
+            if let l = lhs,
+                   r = rhs {
+                return .pure((l, r))
+            }
+            else {
+                return .done()
+            }
         }
     }
 }
@@ -204,11 +208,11 @@ public func zip<A, B>(a: Stream<A>, _ b: Stream<B>) -> Stream<(A, B)> {
         let queue = ArrayDeque<Either<A, B>>()
         return { e in
             switch ((queue.head, e)) {
-            case ((.Some(.Left(let l)), .Right(let r))):
+            case let ((.Some(.Left(l)), .Right(r))):
                 queue.shift()
                 return .pure((l, r))
                 
-            case ((.Some(.Right(let r)), .Left(let l))):
+            case let ((.Some(.Right(r)), .Left(l))):
                 queue.shift()
                 return .pure((l, r))
                 

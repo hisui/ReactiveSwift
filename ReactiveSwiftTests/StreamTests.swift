@@ -238,34 +238,34 @@ class StreamTests: XCTestCase {
         }
         
         consumeAll()
-        outer!.emit(.Next(Box(Streams.pure("A"))))
+        outer!.emit(Packet.Next(Streams.pure("A")))
         
         consumeAll()
         XCTAssertEqual("A", value!)
         XCTAssertEqual(1, count)
 
         var inner1: Dispatcher<String>? = nil
-        outer?.emit(.Next(Box(Streams.source {
+        outer?.emit(.Next(Streams.source {
             inner1 = $0
             inner1?.setCloseHandler { inner1 = nil }
-        })))
+        }))
         
         consumeAll()
         XCTAssertTrue(inner1 != nil)
         XCTAssertEqual("A", value!)
         XCTAssertEqual(1, count)
         
-        inner1!.emit(.Next(Box("B")))
+        inner1!.emit(.Next("B"))
         
         consumeAll()
         XCTAssertEqual("B", value!)
         XCTAssertEqual(2, count)
         
         var inner2: Dispatcher<String>? = nil
-        outer!.emit(.Next(Box(Streams.source {
+        outer!.emit(.Next(Streams.source {
             inner2 = $0
             inner2?.setCloseHandler { inner2 = nil }
-        })))
+        }))
 
         consumeAll()
         XCTAssertEqual("B", value!)
@@ -273,8 +273,8 @@ class StreamTests: XCTestCase {
         XCTAssertTrue(inner1 == nil)
         XCTAssertTrue(inner2 != nil)
         
-        inner2!.emit(.Next(Box("C")))
-        inner2!.emit(.Done())
+        inner2!.emit(.Next("C"))
+        inner2!.emit(.Done)
         
         consumeAll()
         XCTAssertEqual("C", value!)
@@ -282,7 +282,7 @@ class StreamTests: XCTestCase {
         XCTAssertTrue(inner1 == nil)
         XCTAssertTrue(inner2 == nil)
         
-        outer!.emit(.Done())
+        outer!.emit(.Done)
 
         consumeAll()
         XCTAssertTrue(value == nil)
@@ -342,7 +342,7 @@ class StreamTests: XCTestCase {
         
         consumeUntil(100)
         XCTAssertEqual(["A"], store)
-        XCTAssertEqual(2, count) // .Next("A") + .Done()
+        XCTAssertEqual(2, count) // .Next("A") + .Done
     }
     
     // time-related
@@ -427,21 +427,9 @@ class StreamTests: XCTestCase {
         
         for _ in 1 ... 3 {
             let a = toArray(given)
-            if (a.count == 2) {
-                switch (a[0], a[1]) {
-                case (.Left(let l), .Right(let r)):
-                    XCTAssertEqual(l, "A")
-                    XCTAssertEqual(r,  1 )
-                    
-                case (.Right(let r), .Left(let l)):
-                    XCTAssertEqual(l, "A")
-                    XCTAssertEqual(r,  1 )
-                    
-                default:
-                    XCTFail("unreachable")
-                }
-            }
-            XCTAssertEqual(2, a.count)
+            XCTAssertTrue(
+                a.elementsEqual([Either.Left("A"), Either.Right(1)], isEquivalent: (==)) ||
+                a.elementsEqual([Either.Right(1), Either.Left("A")], isEquivalent: (==)))
         }
     }
     

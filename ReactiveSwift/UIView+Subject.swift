@@ -52,16 +52,16 @@ public extension UIView {
         return panGestureSubject.flatMap { [weak self] e in
             switch e.state {
             case .Began:
-                last?.emit(.Done())
+                last?.emit(.Done)
                 last = ForeignSource<CGPoint>()
                 return Streams.pure((e.locationInView(self!), last! as Stream<CGPoint>))
             case .Ended, .Possible:
-                last?.emit(.Done())
+                last?.emit(.Done)
                 last = nil
             default:
                 last?.emitValue(e.locationInView(self!))
             }
-            return Streams.done()
+            return .done()
         }
     }
 
